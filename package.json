@@ -1,6 +1,6 @@
 {
-  "name": "primavera",
-  "module": "xer.ts",
+  "name": "xerial",
+  "module": "src/parser/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
@@ -8,8 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "inspect": "bun inspect.ts",
-    "schedule": "bun schedule.ts"
+    "test": "bun test"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",

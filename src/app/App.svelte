@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { parseXer, decodeXer, type XerDocument } from "../xer";
   import {
+    parseXer,
+    decodeXer,
     buildGrid,
     GridError,
     formatDate,
     formatTime,
     formatHours,
     weekdayLabel,
+    type XerDocument,
     type GridResult,
-  } from "./lib/grid";
-  import { gridToXlsx, downloadBlob } from "./lib/xlsx";
+  } from "../parser";
+  import { gridToXlsx, downloadBlob } from "./xlsx";
 
   let doc = $state<XerDocument | null>(null);
   let fileName = $state("");
@@ -90,9 +92,8 @@
 
 <header class="topbar">
   <div class="brand">
-    <span class="logo">XER</span>
-    <span class="arrow">→</span>
-    <span class="logo xlsx">Calendar Grid</span>
+    <span class="logo">Xerial</span>
+    <span class="tag">P6 calendars → Excel, in your browser</span>
   </div>
   {#if doc}
     <div class="actions">

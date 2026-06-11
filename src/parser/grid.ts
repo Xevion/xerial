@@ -1,11 +1,11 @@
-import type { XerDocument } from "../../xer";
+import type { XerDocument } from "./xer";
 import {
   decodeCalendar,
   dateToSerial,
   serialToDate,
   type DecodedCalendar,
   type CalendarException,
-} from "../../calendar";
+} from "./calendar";
 
 /** Effective shifts for one calendar on one day. */
 export interface DayInfo {

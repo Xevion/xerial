@@ -4,7 +4,7 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 // Base path for static hosting. On GitHub Pages the site is served from
 // https://<user>.github.io/<repo>/, so the base must match the repo name.
 // Override with BASE_PATH at build time (the deploy workflow sets it).
-const base = process.env.BASE_PATH ?? "/primavera/";
+const base = process.env.BASE_PATH ?? "/xerial/";
 
 export default defineConfig({
   base,

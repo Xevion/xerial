@@ -62,7 +62,9 @@ body {
   border-radius: 4px;
 }
 
-.brand .arrow {
+.brand .tag {
+  font-weight: 400;
+  font-size: 0.85rem;
   opacity: 0.8;
 }
 

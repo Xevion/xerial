@@ -121,9 +121,3 @@ export function parseXer(text: string): XerDocument {
     },
   };
 }
-
-/** Read and parse an XER file from disk. */
-export async function readXerFile(path: string): Promise<XerDocument> {
-  const bytes = new Uint8Array(await Bun.file(path).arrayBuffer());
-  return parseXer(decodeXer(bytes));
-}

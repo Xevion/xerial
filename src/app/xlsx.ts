@@ -1,5 +1,4 @@
-import ExcelJS from "exceljs";
-import type { GridResult } from "./grid";
+import type { GridResult } from "../parser";
 
 const DATE_FMT = "m/d/yyyy";
 const TIME_FMT = "h:mm AM/PM";
@@ -12,8 +11,11 @@ const HOURS_FMT = "0.##";
  * numbers (0 on non-working days).
  */
 export async function gridToXlsx(grid: GridResult): Promise<Blob> {
+  // Lazy-loaded: exceljs is large and only needed at export time, so it stays
+  // out of the initial bundle and downloads on first export.
+  const { default: ExcelJS } = await import("exceljs");
   const wb = new ExcelJS.Workbook();
-  wb.creator = "XER → XLSX";
+  wb.creator = "Xerial";
   const ws = wb.addWorksheet("Calendar");
 
   const FIRST_DATE_COL = 3;
