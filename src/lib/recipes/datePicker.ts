@@ -51,7 +51,10 @@ export const datePickerRecipe = defineSlotRecipe({
 			border: "1px solid token(colors.border)",
 			borderRadius: "10px",
 			boxShadow: "menu",
+			transformOrigin: "var(--transform-origin)",
 			_focusVisible: { outline: "none" },
+			_open: { animation: "popIn 140ms ease-out" },
+			_closed: { animation: "popOut 100ms ease-in" },
 		},
 		viewControl: {
 			display: "flex",
@@ -117,6 +120,7 @@ export const datePickerRecipe = defineSlotRecipe({
 			borderRadius: "5px",
 			cursor: "pointer",
 			fontVariantNumeric: "tabular-nums",
+			transition: "background-color 0.12s, color 0.12s",
 			_hover: { bg: "selection" },
 			_selected: { bg: "accent", color: "#ffffff", _hover: { bg: "accent.strong" } },
 			_disabled: { opacity: 0.35, cursor: "default", _hover: { bg: "transparent" } },
@@ -138,6 +142,7 @@ export const datePickerRecipe = defineSlotRecipe({
 			borderRadius: "999px",
 			cursor: "pointer",
 			whiteSpace: "nowrap",
+			transition: "background-color 0.12s, border-color 0.12s",
 			_hover: { bg: "selection", borderColor: "accent" },
 			_disabled: {
 				opacity: 0.4,

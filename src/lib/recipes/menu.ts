@@ -25,7 +25,10 @@ export const menuRecipe = defineSlotRecipe({
 			border: "1px solid token(colors.border)",
 			borderRadius: "8px",
 			boxShadow: "menu",
+			transformOrigin: "var(--transform-origin)",
 			_focusVisible: { outline: "none" },
+			_open: { animation: "popIn 140ms ease-out" },
+			_closed: { animation: "popOut 100ms ease-in" },
 		},
 		item: {
 			display: "flex",
@@ -39,6 +42,7 @@ export const menuRecipe = defineSlotRecipe({
 			fontSize: "0.875rem",
 			textAlign: "left",
 			cursor: "pointer",
+			transition: "background-color 0.12s",
 			_highlighted: { bg: "selection" },
 		},
 	},

@@ -61,6 +61,7 @@
 			border: "1px solid token(colors.border)",
 			borderRadius: "5px",
 			cursor: "pointer",
+			transition: "background-color 0.12s, border-color 0.12s",
 			_hover: { bg: "selection", borderColor: "accent" },
 			'&[data-active="true"]': { bg: "selection", borderColor: "accent", fontWeight: 600 },
 		}),
@@ -77,6 +78,7 @@
 			borderRadius: "5px",
 			fontSize: "0.875rem",
 			cursor: "pointer",
+			transition: "background-color 0.12s",
 			_highlighted: { bg: "selection" },
 		}),
 		box: css({
@@ -89,6 +91,7 @@
 			border: "1px solid token(colors.border)",
 			borderRadius: "3px",
 			color: "transparent",
+			transition: "background-color 0.12s, border-color 0.12s, color 0.12s",
 		}),
 		boxOn: css({ bg: "accent", borderColor: "accent", color: "#ffffff" }),
 		name: css({ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }),

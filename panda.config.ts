@@ -32,6 +32,15 @@ export default defineConfig({
 
 			keyframes: {
 				spin: { to: { transform: "rotate(360deg)" } },
+				// Popover/menu entrance & exit, anchored to Ark's --transform-origin.
+				popIn: {
+					from: { opacity: 0, transform: "scale(0.96) translateY(-4px)" },
+					to: { opacity: 1, transform: "scale(1) translateY(0)" },
+				},
+				popOut: {
+					from: { opacity: 1, transform: "scale(1) translateY(0)" },
+					to: { opacity: 0, transform: "scale(0.96) translateY(-4px)" },
+				},
 			},
 
 			tokens: {
@@ -113,6 +122,14 @@ export default defineConfig({
 
 	globalCss: {
 		"html, body": { margin: 0, height: "100%" },
+		// Honor a user's reduced-motion preference: collapse animations/transitions.
+		"@media (prefers-reduced-motion: reduce)": {
+			"*, *::before, *::after": {
+				animationDuration: "0.01ms !important",
+				animationIterationCount: "1 !important",
+				transitionDuration: "0.01ms !important",
+			},
+		},
 		// Pin the native UA color scheme to the active theme so scrollbars and form
 		// controls render dark under `.dark`, not just the tokenized chrome. The
 		// `dark` class lives on <html> itself, so the `_dark` condition (`.dark &`,
