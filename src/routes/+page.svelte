@@ -78,6 +78,9 @@
 
 	const baseName = $derived(fileName.replace(/\.xer$/i, "") || "schedule");
 
+	// Lead with the loaded filename so a tab is identifiable at a glance.
+	const pageTitle = $derived(fileName ? `${fileName} · Xerial` : "Xerial");
+
 	/**
 	 * Resolve after the browser has actually painted. A single rAF fires *before*
 	 * paint, so the spinner never shows; waiting two frames guarantees the busy
@@ -161,6 +164,10 @@
 		empty: css({ margin: "auto", color: "muted", fontSize: "0.9rem" }),
 	};
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+</svelte:head>
 
 <Topbar>
 	{#snippet actions()}
