@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import {
     parseXer,
     decodeXer,
@@ -12,6 +13,7 @@
     type GridResult,
   } from "../parser";
   import { gridToXlsx, downloadBlob } from "./xlsx";
+  import { savePersisted, loadPersisted, clearPersisted } from "./persist";
 
   let doc = $state<XerDocument | null>(null);
   let fileName = $state("");
@@ -40,16 +42,16 @@
     return wd === "Sat" || wd === "Sun";
   };
 
-  async function loadFile(file: File) {
+  async function ingest(bytes: Uint8Array, name: string, persist: boolean) {
     error = null;
     buildError = null;
     busy = true;
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
       const parsed = parseXer(decodeXer(bytes));
       if (parsed.tables.length === 0) throw new Error("No tables found — is this a valid XER file?");
       doc = parsed;
-      fileName = file.name;
+      fileName = name;
+      if (persist) void savePersisted(name, bytes);
     } catch (e) {
       doc = null;
       error = e instanceof Error ? e.message : String(e);
@@ -57,6 +59,16 @@
       busy = false;
     }
   }
+
+  async function loadFile(file: File) {
+    await ingest(new Uint8Array(await file.arrayBuffer()), file.name, true);
+  }
+
+  // Re-hydrate a file kept across a dev reload (no-op in production / fresh tab).
+  onMount(async () => {
+    const restored = await loadPersisted();
+    if (restored && !doc) await ingest(restored.bytes, restored.name, false);
+  });
 
   function onFiles(files: FileList | null | undefined) {
     const file = files?.[0];
@@ -87,6 +99,7 @@
     fileName = "";
     error = null;
     buildError = null;
+    void clearPersisted();
   }
 </script>
 
