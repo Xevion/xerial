@@ -1,0 +1,19 @@
+{
+  "name": "primavera",
+  "module": "xer.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "inspect": "bun inspect.ts",
+    "schedule": "bun schedule.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}

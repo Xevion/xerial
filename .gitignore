@@ -1,0 +1,17 @@
+node_modules
+out
+dist
+*.tgz
+coverage
+*.lcov
+*.tsbuildinfo
+.env
+.env.*.local
+.env.local
+.cache
+.idea
+.DS_Store
+
+# data exports (not for sharing)
+*.xer
+*.xlsx
