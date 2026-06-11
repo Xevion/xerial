@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FileSpreadsheet from "@lucide/svelte/icons/file-spreadsheet";
 
+	import CalendarSelect from "$lib/components/CalendarSelect.svelte";
 	import DateRangePicker from "$lib/components/DateRangePicker.svelte";
 	import type { XerHeader } from "$lib/parser";
 
@@ -9,16 +10,25 @@
 	let {
 		fileName,
 		header,
-		includeAll = $bindable(false),
+		calendars,
+		selected,
+		onSelectionChange,
 		span,
+		bounds,
 		range,
 		onRangeChange,
 	}: {
 		fileName: string;
 		header: XerHeader | null;
-		includeAll?: boolean;
+		/** Every calendar in the file, for the selection dropdown. */
+		calendars: { id: string; name: string; usage: number }[];
+		/** The currently shown calendars, by clndr_id. */
+		selected: ReadonlySet<string>;
+		onSelectionChange: (next: Set<string>) => void;
 		/** Detected activity envelope; the picker is hidden when null (no dates). */
 		span: { start: string; end: string } | null;
+		/** Selectable bounds for the picker (month/week-padded span). */
+		bounds: { min: string; max: string } | null;
 		/** The effective window the grid is built for. */
 		range: { start: string; end: string } | null;
 		onRangeChange: (range: { start: string; end: string }) => void;
@@ -44,17 +54,12 @@
 			color: "muted",
 			fontSize: "0.82rem",
 		}),
-		range: css({ marginLeft: "auto", display: "flex", alignItems: "center" }),
-		toggle: css({
+		controls: css({
+			marginLeft: "auto",
 			display: "flex",
 			alignItems: "center",
-			gap: "0.4rem",
-			marginLeft: "auto",
-			fontSize: "0.82rem",
-			color: "muted",
-			fontWeight: 600,
-			cursor: "pointer",
-			"& input": { accentColor: "token(colors.accent)", cursor: "pointer" },
+			gap: "0.6rem",
+			flexWrap: "wrap",
 		}),
 	};
 </script>
@@ -71,19 +76,20 @@
 			{#if header.userFullName}<span>by {header.userFullName}</span>{/if}
 		</span>
 	{/if}
-	{#if span && range}
-		<div class={styles.range}>
+	<div class={styles.controls}>
+		{#if span && bounds && range}
 			<DateRangePicker
 				start={range.start}
 				end={range.end}
 				fullSpan={span}
+				min={bounds.min}
+				max={bounds.max}
 				resetKey={fileName}
 				onChange={onRangeChange}
 			/>
-		</div>
-	{/if}
-	<label class={styles.toggle}>
-		<input type="checkbox" bind:checked={includeAll} />
-		Show all calendars
-	</label>
+		{/if}
+		{#if calendars.length}
+			<CalendarSelect {calendars} {selected} onChange={onSelectionChange} />
+		{/if}
+	</div>
 </div>

@@ -23,13 +23,15 @@
 	} from "$lib/parser";
 	import { savePersisted, loadPersisted, clearPersisted } from "$lib/persist";
 	import { sampleXer } from "$lib/sample";
+	import { selectableBounds } from "$lib/window";
 
 	import { css } from "styled-system/css";
 	import { button } from "styled-system/recipes";
 
 	let doc = $state<XerDocument | null>(null);
 	let fileName = $state("");
-	let includeAll = $state(false);
+	// Explicit calendar selection by clndr_id; null falls back to the used calendars.
+	let selectedIds = $state<Set<string> | null>(null);
 	let error = $state<string | null>(null);
 	let busy = $state(false);
 	let exportError = $state<string | null>(null);
@@ -46,6 +48,8 @@
 		return s.startIso && s.endIso ? { start: s.startIso, end: s.endIso } : null;
 	});
 	const effectiveRange = $derived(range ?? detectedSpan);
+	// Days outside the schedule's months/weeks are disabled in the picker.
+	const bounds = $derived(detectedSpan ? selectableBounds(detectedSpan) : null);
 
 	// The expensive half — decode + expand every calendar over the serial axis. The
 	// axis is the chosen date window, so a range change re-expands (unavoidable), but
@@ -62,12 +66,26 @@
 		}
 	});
 
+	// The calendar roster is stable across date ranges, so the selector and its
+	// default (used calendars, or all when none are referenced) derive from it cheaply.
+	const calendarList = $derived(
+		(prepared.value?.calendars ?? []).map((c) => ({ id: c.clndrId, name: c.name, usage: c.usage })),
+	);
+	const defaultSelected = $derived.by<Set<string>>(() => {
+		const used = calendarList.filter((c) => c.usage > 0).map((c) => c.id);
+		return new Set(used.length ? used : calendarList.map((c) => c.id));
+	});
+	const effectiveSelected = $derived(selectedIds ?? defaultSelected);
+
 	// Selecting which prepared calendars to show is cheap and reuses calendar objects
 	// verbatim, so toggling re-renders only the rows that actually appear or vanish.
 	const built = $derived.by<{ grid: GridResult | null; error: string | null }>(() => {
 		if (!prepared.value) return { grid: null, error: prepared.error };
 		try {
-			return { grid: selectGrid(prepared.value, { includeAll }), error: null };
+			return {
+				grid: selectGrid(prepared.value, { selectedClndrIds: effectiveSelected }),
+				error: null,
+			};
 		} catch (e) {
 			return { grid: null, error: asMessage(e) };
 		}
@@ -92,8 +110,9 @@
 	async function ingest(bytes: Uint8Array, name: string, persist: boolean) {
 		error = null;
 		exportError = null;
-		// A new file gets its own detected span; drop any window from the previous one.
+		// A new file gets its own detected span and calendar roster; drop the old ones.
 		range = null;
+		selectedIds = null;
 		busy = true;
 		await afterPaint();
 		try {
@@ -147,6 +166,7 @@
 		error = null;
 		exportError = null;
 		range = null;
+		selectedIds = null;
 		void clearPersisted();
 	}
 
@@ -185,8 +205,11 @@
 			<WorkbookHeader
 				{fileName}
 				header={doc.header}
-				bind:includeAll
+				calendars={calendarList}
+				selected={effectiveSelected}
+				onSelectionChange={(s) => (selectedIds = s)}
 				span={detectedSpan}
+				{bounds}
 				range={effectiveRange}
 				onRangeChange={(r) => (range = r)}
 			/>
@@ -194,7 +217,7 @@
 				{#if grid && grid.calendars.length}
 					<CalendarGrid {grid} />
 				{:else if grid}
-					<p class={styles.empty}>No calendars to show. Try “Show all calendars”.</p>
+					<p class={styles.empty}>No calendars selected. Pick some from the Calendars menu.</p>
 				{/if}
 			</div>
 		</div>

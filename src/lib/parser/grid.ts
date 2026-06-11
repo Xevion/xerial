@@ -54,6 +54,8 @@ export class GridError extends Error {}
 export interface GridOptions {
 	/** Include every CALENDAR row, not just those used by tasks. */
 	includeAll?: boolean;
+	/** Explicit calendars to show, by clndr_id. Overrides `includeAll` when set. */
+	selectedClndrIds?: ReadonlySet<string>;
 	startIso?: string;
 	endIso?: string;
 }
@@ -219,8 +221,10 @@ export function prepareGrid(doc: XerDocument, opts: GridOptions = {}): PreparedG
  */
 export function selectGrid(prepared: PreparedGrid, opts: GridOptions = {}): GridResult {
 	const includeAll = opts.includeAll ?? false;
-	const wanted =
-		!includeAll && prepared.anyUsed
+	const selected = opts.selectedClndrIds;
+	const wanted = selected
+		? prepared.calendars.filter((c) => selected.has(c.clndrId))
+		: !includeAll && prepared.anyUsed
 			? prepared.calendars.filter((c) => c.usage > 0)
 			: prepared.calendars;
 	// Most-used first; Array.prototype.sort is stable, so equal-usage order holds.

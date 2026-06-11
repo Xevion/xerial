@@ -139,6 +139,12 @@ export const datePickerRecipe = defineSlotRecipe({
 			cursor: "pointer",
 			whiteSpace: "nowrap",
 			_hover: { bg: "selection", borderColor: "accent" },
+			_disabled: {
+				opacity: 0.4,
+				cursor: "default",
+				pointerEvents: "none",
+				_hover: { bg: "transparent", borderColor: "border" },
+			},
 		},
 	},
 });

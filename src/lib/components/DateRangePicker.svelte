@@ -10,6 +10,14 @@
 	import ChevronLeft from "@lucide/svelte/icons/chevron-left";
 	import ChevronRight from "@lucide/svelte/icons/chevron-right";
 
+	import {
+		monthRangeOf,
+		quarterRangeOf,
+		rangesOverlap,
+		toWholeWeeks,
+		yearRangeOf,
+	} from "$lib/window";
+
 	import { css } from "styled-system/css";
 	import { datePicker } from "styled-system/recipes";
 
@@ -17,20 +25,39 @@
 		start,
 		end,
 		fullSpan,
+		min,
+		max,
 		resetKey,
 		onChange,
 	}: {
 		/** Range to seed the picker with on mount, ISO yyyy-mm-dd. */
 		start: string;
 		end: string;
-		/** The file's detected envelope, offered as the "Full span" reset preset. */
+		/** The file's detected envelope: the indicator text and "Full span" preset. */
 		fullSpan: { start: string; end: string };
+		/** Selectable bounds; days outside are disabled. ISO yyyy-mm-dd. */
+		min: string;
+		max: string;
 		/** Identity of the loaded file; changing it remounts the picker to re-seed. */
 		resetKey: string;
 		onChange: (range: { start: string; end: string }) => void;
 	} = $props();
 
 	const dp = datePicker();
+
+	const wholeWeeks = $derived(toWholeWeeks(fullSpan));
+
+	// "This month/quarter/year" anchor to the wall clock, so for a schedule that
+	// doesn't span the present they'd clamp to a single boundary date. Disable any
+	// whose window doesn't overlap the selectable bounds. Captured once on mount.
+	const today = new Date();
+	const relativePresets = $derived(
+		[
+			{ label: "This month", range: monthRangeOf(today) },
+			{ label: "This quarter", range: quarterRangeOf(today) },
+			{ label: "This year", range: yearRangeOf(today) },
+		].map((p) => ({ ...p, enabled: rangesOverlap(p.range, { start: min, end: max }) })),
+	);
 
 	// A range is only meaningful once both ends exist; Ark emits an interim
 	// single-element value after the first click, which we deliberately ignore.
@@ -45,6 +72,10 @@
 			flexWrap: "wrap",
 			gap: "0.35rem",
 			marginBottom: "0.6rem",
+			// Fill the calendar's width and wrap, rather than widening the popover:
+			// zero intrinsic width keeps the pills from dictating the content size.
+			width: 0,
+			minWidth: "100%",
 		}),
 		sep: css({ color: "muted", fontSize: "0.8rem" }),
 	};
@@ -68,6 +99,8 @@
 	<DatePicker.Root
 		selectionMode="range"
 		defaultValue={[parseDate(start), parseDate(end)]}
+		min={parseDate(min)}
+		max={parseDate(max)}
 		onValueChange={handleValueChange}
 	>
 		<DatePicker.Control class={dp.control}>
@@ -89,15 +122,21 @@
 						>
 							Full span
 						</DatePicker.PresetTrigger>
-						<DatePicker.PresetTrigger class={dp.presetTrigger} value="thisMonth">
-							This month
+						<DatePicker.PresetTrigger
+							class={dp.presetTrigger}
+							value={[parseDate(wholeWeeks.start), parseDate(wholeWeeks.end)]}
+						>
+							Whole weeks
 						</DatePicker.PresetTrigger>
-						<DatePicker.PresetTrigger class={dp.presetTrigger} value="thisQuarter">
-							This quarter
-						</DatePicker.PresetTrigger>
-						<DatePicker.PresetTrigger class={dp.presetTrigger} value="thisYear">
-							This year
-						</DatePicker.PresetTrigger>
+						{#each relativePresets as p (p.label)}
+							<DatePicker.PresetTrigger
+								class={dp.presetTrigger}
+								value={[parseDate(p.range.start), parseDate(p.range.end)]}
+								disabled={!p.enabled}
+							>
+								{p.label}
+							</DatePicker.PresetTrigger>
+						{/each}
 					</div>
 
 					<DatePicker.View view="day">
