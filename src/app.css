@@ -1,1 +1,4 @@
-@layer reset, base, tokens, recipes, utilities;
+/* Panda's CLI (`panda --watch`) emits this with the full cascade; the PostCSS
+   plugin is intentionally not used — its config-reload path drops the utilities
+   layer on soft HMR. The generated file already declares the @layer order. */
+@import "../styled-system/styles.css";
