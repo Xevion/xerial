@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FileSpreadsheet from "@lucide/svelte/icons/file-spreadsheet";
 
+	import DateRangePicker from "$lib/components/DateRangePicker.svelte";
 	import type { XerHeader } from "$lib/parser";
 
 	import { css } from "styled-system/css";
@@ -9,10 +10,18 @@
 		fileName,
 		header,
 		includeAll = $bindable(false),
+		span,
+		range,
+		onRangeChange,
 	}: {
 		fileName: string;
 		header: XerHeader | null;
 		includeAll?: boolean;
+		/** Detected activity envelope; the picker is hidden when null (no dates). */
+		span: { start: string; end: string } | null;
+		/** The effective window the grid is built for. */
+		range: { start: string; end: string } | null;
+		onRangeChange: (range: { start: string; end: string }) => void;
 	} = $props();
 
 	const styles = {
@@ -35,6 +44,7 @@
 			color: "muted",
 			fontSize: "0.82rem",
 		}),
+		range: css({ marginLeft: "auto", display: "flex", alignItems: "center" }),
 		toggle: css({
 			display: "flex",
 			alignItems: "center",
@@ -60,6 +70,17 @@
 			<span>exported {header.exportDate}</span>
 			{#if header.userFullName}<span>by {header.userFullName}</span>{/if}
 		</span>
+	{/if}
+	{#if span && range}
+		<div class={styles.range}>
+			<DateRangePicker
+				start={range.start}
+				end={range.end}
+				fullSpan={span}
+				resetKey={fileName}
+				onChange={onRangeChange}
+			/>
+		</div>
 	{/if}
 	<label class={styles.toggle}>
 		<input type="checkbox" bind:checked={includeAll} />

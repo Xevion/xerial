@@ -13,6 +13,7 @@
 	import {
 		parseXer,
 		decodeXer,
+		detectActivitySpan,
 		prepareGrid,
 		selectGrid,
 		GridError,
@@ -32,15 +33,30 @@
 	let error = $state<string | null>(null);
 	let busy = $state(false);
 	let exportError = $state<string | null>(null);
+	// User-chosen date window; null falls back to the file's detected activity span.
+	let range = $state<{ start: string; end: string } | null>(null);
 
 	const asMessage = (e: unknown) => (e instanceof GridError ? e.message : String(e));
 
-	// The expensive half — decode + expand every calendar — depends only on the
-	// document, so it recomputes on a new file but not on the "all calendars" toggle.
+	// The file's auto-detected envelope — a cheap TASK-row scan, so it's safe to seed
+	// the picker without paying for a full grid build. Null when no activity dates.
+	const detectedSpan = $derived.by<{ start: string; end: string } | null>(() => {
+		if (!doc) return null;
+		const s = detectActivitySpan(doc);
+		return s.startIso && s.endIso ? { start: s.startIso, end: s.endIso } : null;
+	});
+	const effectiveRange = $derived(range ?? detectedSpan);
+
+	// The expensive half — decode + expand every calendar over the serial axis. The
+	// axis is the chosen date window, so a range change re-expands (unavoidable), but
+	// the "all calendars" toggle still only re-runs the cheap selection below.
 	const prepared = $derived.by<{ value: PreparedGrid | null; error: string | null }>(() => {
 		if (!doc) return { value: null, error: null };
 		try {
-			return { value: prepareGrid(doc), error: null };
+			const opts = effectiveRange
+				? { startIso: effectiveRange.start, endIso: effectiveRange.end }
+				: {};
+			return { value: prepareGrid(doc, opts), error: null };
 		} catch (e) {
 			return { value: null, error: asMessage(e) };
 		}
@@ -73,6 +89,8 @@
 	async function ingest(bytes: Uint8Array, name: string, persist: boolean) {
 		error = null;
 		exportError = null;
+		// A new file gets its own detected span; drop any window from the previous one.
+		range = null;
 		busy = true;
 		await afterPaint();
 		try {
@@ -125,6 +143,7 @@
 		fileName = "";
 		error = null;
 		exportError = null;
+		range = null;
 		void clearPersisted();
 	}
 
@@ -156,7 +175,14 @@
 <main class={styles.main}>
 	{#if doc}
 		<div class={styles.workbook} in:fade={{ duration: 160 }}>
-			<WorkbookHeader {fileName} header={doc.header} bind:includeAll />
+			<WorkbookHeader
+				{fileName}
+				header={doc.header}
+				bind:includeAll
+				span={detectedSpan}
+				range={effectiveRange}
+				onRangeChange={(r) => (range = r)}
+			/>
 			<div class={styles.sheet}>
 				{#if grid && grid.calendars.length}
 					<CalendarGrid {grid} />

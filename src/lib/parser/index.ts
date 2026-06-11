@@ -54,6 +54,7 @@ export type { CalendarRow, KnownTables, ProjectRow, RawRow, TaskRow } from "./sc
 
 export {
 	buildGrid,
+	detectActivitySpan,
 	prepareGrid,
 	selectGrid,
 	GridError,

@@ -1,6 +1,7 @@
 import { defineConfig } from "@pandacss/dev";
 
 import { buttonRecipe } from "./src/lib/recipes/button";
+import { datePickerRecipe } from "./src/lib/recipes/datePicker";
 import { menuRecipe } from "./src/lib/recipes/menu";
 
 export default defineConfig({
@@ -26,6 +27,7 @@ export default defineConfig({
 
 			slotRecipes: {
 				menu: menuRecipe,
+				datePicker: datePickerRecipe,
 			},
 
 			keyframes: {

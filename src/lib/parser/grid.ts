@@ -118,6 +118,19 @@ function activitySpan(tasks: TaskRow[]): {
 	return { startIso: mn ?? undefined, endIso: mx ?? undefined };
 }
 
+/**
+ * The auto-detected activity envelope (ISO yyyy-mm-dd) for a document — the same
+ * span `prepareGrid` falls back to. Exposed so the UI can seed a date-range
+ * control with the file's real bounds without paying for a full grid build.
+ * Either bound is undefined when no activity dates exist.
+ */
+export function detectActivitySpan(doc: XerDocument): {
+	startIso: string | undefined;
+	endIso: string | undefined;
+} {
+	return activitySpan(doc.table("TASK")?.rows ?? []);
+}
+
 /** Resolve the date span (from options or auto-detection) to a serial axis. */
 function resolveSpan(
 	tasks: TaskRow[],
