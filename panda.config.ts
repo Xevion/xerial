@@ -134,12 +134,19 @@ export default defineConfig({
 			backgroundColor: "panel",
 		},
 		"table.grid": {
+			// Fixed layout skips the per-cell measurement pass auto layout does across
+			// the whole (very wide) table, and gives the date columns a known width the
+			// virtualizer uses to map scroll offset to a column range.
+			tableLayout: "fixed",
 			borderCollapse: "separate",
 			borderSpacing: 0,
 			fontSize: "0.82rem",
 			fontVariantNumeric: "tabular-nums",
 			whiteSpace: "nowrap",
 		},
+		// Off-screen columns collapse into a single zero-content cell per row that just
+		// reserves their width, so the table keeps its full scroll extent.
+		".c-spacer": { padding: 0, border: "none" },
 		"table.grid th, table.grid td": {
 			borderRight: "1px solid token(colors.grid.line)",
 			borderBottom: "1px solid token(colors.grid.line)",
@@ -155,7 +162,7 @@ export default defineConfig({
 			fontWeight: 600,
 			borderBottom: "2px solid token(colors.grid.line)",
 		},
-		".c-date": { textAlign: "center", minWidth: "4.6rem" },
+		".c-date": { textAlign: "center", width: "var(--col-w, 4.6rem)" },
 		".c-date .d-date": { display: "block", fontWeight: 600 },
 		".c-date .d-wd": {
 			display: "block",
@@ -184,6 +191,7 @@ export default defineConfig({
 			color: "muted",
 			textAlign: "left",
 			fontWeight: 600,
+			width: "6rem",
 			minWidth: "6rem",
 		},
 		"table.grid thead .c-name, table.grid thead .c-label": { zIndex: 3 },

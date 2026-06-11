@@ -13,10 +13,12 @@
 	import {
 		parseXer,
 		decodeXer,
-		buildGrid,
+		prepareGrid,
+		selectGrid,
 		GridError,
 		type XerDocument,
 		type GridResult,
+		type PreparedGrid,
 	} from "$lib/parser";
 	import { savePersisted, loadPersisted, clearPersisted } from "$lib/persist";
 	import { sampleXer } from "$lib/sample";
@@ -31,14 +33,27 @@
 	let busy = $state(false);
 	let exportError = $state<string | null>(null);
 
-	// Rebuilds whenever the file or the "all calendars" toggle changes. The grid and
-	// its failure travel together so the derivation stays pure (no state writes).
-	const built = $derived.by<{ grid: GridResult | null; error: string | null }>(() => {
-		if (!doc) return { grid: null, error: null };
+	const asMessage = (e: unknown) => (e instanceof GridError ? e.message : String(e));
+
+	// The expensive half — decode + expand every calendar — depends only on the
+	// document, so it recomputes on a new file but not on the "all calendars" toggle.
+	const prepared = $derived.by<{ value: PreparedGrid | null; error: string | null }>(() => {
+		if (!doc) return { value: null, error: null };
 		try {
-			return { grid: buildGrid(doc, { includeAll }), error: null };
+			return { value: prepareGrid(doc), error: null };
 		} catch (e) {
-			return { grid: null, error: e instanceof GridError ? e.message : String(e) };
+			return { value: null, error: asMessage(e) };
+		}
+	});
+
+	// Selecting which prepared calendars to show is cheap and reuses calendar objects
+	// verbatim, so toggling re-renders only the rows that actually appear or vanish.
+	const built = $derived.by<{ grid: GridResult | null; error: string | null }>(() => {
+		if (!prepared.value) return { grid: null, error: prepared.error };
+		try {
+			return { grid: selectGrid(prepared.value, { includeAll }), error: null };
+		} catch (e) {
+			return { grid: null, error: asMessage(e) };
 		}
 	});
 	const grid = $derived(built.grid);
@@ -47,14 +62,19 @@
 
 	const baseName = $derived(fileName.replace(/\.xer$/i, "") || "schedule");
 
-	/** Yield a frame so the busy spinner paints before a large parse blocks the thread. */
-	const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r(undefined)));
+	/**
+	 * Resolve after the browser has actually painted. A single rAF fires *before*
+	 * paint, so the spinner never shows; waiting two frames guarantees the busy
+	 * state is on screen before — and stays up through — the blocking work.
+	 */
+	const afterPaint = () =>
+		new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
 	async function ingest(bytes: Uint8Array, name: string, persist: boolean) {
 		error = null;
 		exportError = null;
 		busy = true;
-		await nextFrame();
+		await afterPaint();
 		try {
 			const parsed = parseXer(decodeXer(bytes));
 			if (parsed.tables.length === 0)
@@ -62,6 +82,8 @@
 			doc = parsed;
 			fileName = name;
 			if (persist) void savePersisted(name, bytes);
+			// Hold the spinner up while prepare + the grid's first paint complete.
+			await afterPaint();
 		} catch (e) {
 			doc = null;
 			error = e instanceof Error ? e.message : String(e);

@@ -47,10 +47,13 @@ export type { CalendarRow, KnownTables, ProjectRow, RawRow, TaskRow } from "./sc
 
 export {
 	buildGrid,
+	prepareGrid,
+	selectGrid,
 	GridError,
 	type CalendarGrid,
 	type DayInfo,
 	type GridOptions,
 	type GridResult,
+	type PreparedGrid,
 	type SkippedCalendar,
 } from "./grid";
