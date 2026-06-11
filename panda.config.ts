@@ -1,6 +1,7 @@
 import { defineConfig } from "@pandacss/dev";
 
 import { buttonRecipe } from "./src/lib/recipes/button";
+import { menuRecipe } from "./src/lib/recipes/menu";
 
 export default defineConfig({
 	preflight: true,
@@ -21,6 +22,10 @@ export default defineConfig({
 		extend: {
 			recipes: {
 				button: buttonRecipe,
+			},
+
+			slotRecipes: {
+				menu: menuRecipe,
 			},
 
 			keyframes: {

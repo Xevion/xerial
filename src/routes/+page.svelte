@@ -112,7 +112,7 @@
 		busy = true;
 		exportError = null;
 		try {
-			await saveExport(exporter, grid, `${baseName}-calendar-grid`);
+			await saveExport(exporter, grid, `${baseName}_${grid.startIso}_to_${grid.endIso}`);
 		} catch (e) {
 			exportError = e instanceof Error ? e.message : String(e);
 		} finally {
