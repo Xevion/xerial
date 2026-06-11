@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 
+	import ArrowDownToLine from "@lucide/svelte/icons/arrow-down-to-line";
+	import Moon from "@lucide/svelte/icons/moon";
+	import Sun from "@lucide/svelte/icons/sun";
+
 	import {
 		formatDate,
 		formatTime,
@@ -90,7 +94,13 @@
 			'&[data-dragging="true"]': { borderColor: "accent", bg: "selection" },
 		}),
 		dropInner: css({ textAlign: "center", padding: "2rem" }),
-		dropIcon: css({ fontSize: "2.5rem", color: "accent", marginBottom: "0.5rem" }),
+		dropIcon: css({
+			display: "block",
+			width: "2.5rem",
+			height: "2.5rem",
+			color: "accent",
+			margin: "0 auto 0.5rem",
+		}),
 		dropTitle: css({ fontSize: "1.15rem", margin: "0.25rem 0" }),
 		dropSub: css({ color: "muted", fontSize: "0.9rem", margin: "0.2rem 0" }),
 		error: css({ color: "danger", fontSize: "0.9rem" }),
@@ -228,33 +238,8 @@
 			title={themeStore.isDark ? "Switch to light theme" : "Switch to dark theme"}
 			aria-label="Toggle color theme"
 		>
-			<svg
-				class={styles.sunIcon}
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<circle cx="12" cy="12" r="4" />
-				<path
-					d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
-				/>
-			</svg>
-			<svg
-				class={styles.moonIcon}
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-			</svg>
+			<Sun class={styles.sunIcon} aria-hidden="true" />
+			<Moon class={styles.moonIcon} aria-hidden="true" />
 		</button>
 	</div>
 </header>
@@ -276,7 +261,7 @@
 			onkeydown={(e) => (e.key === "Enter" || e.key === " ") && fileInput?.click()}
 		>
 			<div class={styles.dropInner}>
-				<div class={styles.dropIcon}>⬇</div>
+				<ArrowDownToLine class={styles.dropIcon} aria-hidden="true" />
 				<p class={styles.dropTitle}>Drop a Primavera <strong>.xer</strong> file here</p>
 				<p class={styles.dropSub}>
 					or click to browse · calendars are expanded to a day-by-day grid in your browser

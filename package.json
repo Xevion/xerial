@@ -20,6 +20,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.17.0",
 		"exceljs": "^4.4.0"
 	},
 	"devDependencies": {
