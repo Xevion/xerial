@@ -14,6 +14,11 @@
   } from "../parser";
   import { gridToXlsx, downloadBlob } from "./xlsx";
   import { savePersisted, loadPersisted, clearPersisted } from "./persist";
+  import { initialTheme, applyTheme, type Theme } from "./theme";
+
+  let theme = $state<Theme>(initialTheme());
+  $effect(() => applyTheme(theme));
+  const toggleTheme = () => (theme = theme === "dark" ? "light" : "dark");
 
   let doc = $state<XerDocument | null>(null);
   let fileName = $state("");
@@ -108,14 +113,52 @@
     <span class="logo">Xerial</span>
     <span class="tag">P6 calendars → Excel, in your browser</span>
   </div>
-  {#if doc}
-    <div class="actions">
+  <div class="actions">
+    {#if doc}
       <button class="btn ghost" onclick={reset}>New file</button>
       <button class="btn primary" onclick={exportXlsx} disabled={busy || !grid}>
         {busy ? "Working…" : "Download .xlsx"}
       </button>
-    </div>
-  {/if}
+    {/if}
+    <button
+      class="btn icon"
+      type="button"
+      onclick={toggleTheme}
+      title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label="Toggle color theme"
+    >
+      {#if theme === "dark"}
+        <svg
+          class="icon-svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+          />
+        </svg>
+      {:else}
+        <svg
+          class="icon-svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      {/if}
+    </button>
+  </div>
 </header>
 
 <main>

@@ -10,6 +10,18 @@
     />
   </head>
   <body>
+    <script>
+      // Resolve the theme before first paint so the page never flashes light
+      // then dark. Mirrors src/app/theme.ts (key + system-preference fallback).
+      (function () {
+        try {
+          var t = localStorage.getItem("xerial:theme");
+          if (t !== "light" && t !== "dark")
+            t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.dataset.theme = t;
+        } catch (e) {}
+      })();
+    </script>
     <div id="app"></div>
     <script type="module" src="/src/app/main.ts"></script>
   </body>

@@ -1,18 +1,49 @@
+/*
+ * Theme tokens. Each token carries both values via light-dark(light, dark) so a
+ * light/dark pair always sits on one line — edit them side by side. The active
+ * side is picked by `color-scheme`, which `[data-theme]` pins (see theme.ts).
+ */
 :root {
-  --excel-green: #217346;
-  --excel-green-dark: #1a5c38;
-  --grid-line: #d4d4d4;
-  --grid-header-bg: #f3f3f3;
-  --grid-header-fg: #444;
-  --rownum-bg: #f3f3f3;
-  --bg: #fafafa;
-  --panel: #ffffff;
-  --text: #1f1f1f;
-  --muted: #6b6b6b;
-  --border: #e2e2e2;
-  --selection: #e8f2ec;
+  color-scheme: light dark;
+
+  --topbar-bg: light-dark(#217346, #1f6b41);
+  --topbar-fg: light-dark(#ffffff, #ffffff);
+
+  --accent: light-dark(#217346, #3aa76d);
+  --accent-strong: light-dark(#1a5c38, #2f8f5b);
+
+  --bg: light-dark(#fafafa, #18181a);
+  --panel: light-dark(#ffffff, #1f1f22);
+  --text: light-dark(#1f1f1f, #e6e6e6);
+  --muted: light-dark(#6b6b6b, #9b9b9b);
+  --border: light-dark(#e2e2e2, #34343a);
+  --selection: light-dark(#e8f2ec, #233029);
+  --shadow: light-dark(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.5));
+
+  --grid-line: light-dark(#d4d4d4, #3a3a3a);
+  --grid-header-bg: light-dark(#f3f3f3, #2a2a2c);
+  --grid-header-fg: light-dark(#444444, #c2c2c2);
+  --rownum-bg: light-dark(#f3f3f3, #2a2a2c);
+  --weekend-bg: light-dark(#f7f7f7, #202024);
+  --num-off: light-dark(#c4c4c4, #555558);
+
+  --btn-primary-bg: light-dark(#ffffff, #ffffff);
+  --btn-primary-fg: light-dark(#1a5c38, #1a5c38);
+  --btn-primary-hover-bg: light-dark(#eef6f1, #eef6f1);
+
+  --error: light-dark(#b3261e, #f2756b);
+  --warn: light-dark(#8a6d00, #d9b54a);
+
   font-family: "Segoe UI", Calibri, system-ui, -apple-system, sans-serif;
   color: var(--text);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 * {
@@ -43,9 +74,9 @@ body {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.6rem 1rem;
-  background: var(--excel-green);
-  color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  background: var(--topbar-bg);
+  color: var(--topbar-fg);
+  box-shadow: 0 1px 3px var(--shadow);
 }
 
 .brand {
@@ -70,6 +101,7 @@ body {
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -85,22 +117,42 @@ body {
 }
 
 .btn.primary {
-  background: #fff;
-  color: var(--excel-green-dark);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: #eef6f1;
+  background: var(--btn-primary-hover-bg);
 }
 
 .btn.ghost {
   background: transparent;
-  color: #fff;
+  color: var(--topbar-fg);
   border-color: rgba(255, 255, 255, 0.4);
 }
 
 .btn.ghost:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+/* Square, label-less button used for the theme toggle on the topbar. */
+.btn.icon {
+  display: grid;
+  place-items: center;
+  padding: 0.4rem;
+  background: transparent;
+  color: var(--topbar-fg);
+  border-color: rgba(255, 255, 255, 0.4);
+  line-height: 0;
+}
+
+.btn.icon:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn.icon .icon-svg {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .btn:disabled {
@@ -130,12 +182,12 @@ main {
 
 .dropzone:hover,
 .dropzone:focus-visible {
-  border-color: var(--excel-green);
+  border-color: var(--accent);
   outline: none;
 }
 
 .dropzone.dragging {
-  border-color: var(--excel-green);
+  border-color: var(--accent);
   background: var(--selection);
 }
 
@@ -146,7 +198,7 @@ main {
 
 .drop-icon {
   font-size: 2.5rem;
-  color: var(--excel-green);
+  color: var(--accent);
   margin-bottom: 0.5rem;
 }
 
@@ -162,7 +214,7 @@ main {
 }
 
 .error {
-  color: #b3261e;
+  color: var(--error);
   font-size: 0.9rem;
 }
 
@@ -207,7 +259,7 @@ main {
 }
 
 .toggle input {
-  accent-color: var(--excel-green);
+  accent-color: var(--accent);
 }
 
 .dims {
@@ -216,7 +268,7 @@ main {
 }
 
 .warn {
-  color: #8a6d00;
+  color: var(--warn);
   font-size: 0.82rem;
 }
 
@@ -226,7 +278,7 @@ main {
   overflow: auto;
   border: 1px solid var(--grid-line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--panel);
 }
 
 table.grid {
@@ -303,11 +355,11 @@ table.grid thead .c-label {
 }
 
 .num.off {
-  color: #c4c4c4;
+  color: var(--num-off);
 }
 
 td.weekend {
-  background: #f7f7f7;
+  background: var(--weekend-bg);
 }
 
 .r-total .num {
