@@ -47,9 +47,12 @@ export async function saveExport(
 	if (typeof window !== "undefined" && "showSaveFilePicker" in window) {
 		try {
 			const picker = window as unknown as SaveFilePicker;
+			// showSaveFilePicker rejects MIME types with parameters (e.g. ";charset=utf-8"),
+			// so the accept key must be the bare type even when the Blob keeps the charset.
+			const acceptMime = exporter.mime.split(";")[0] ?? exporter.mime;
 			const handle = await picker.showSaveFilePicker({
 				suggestedName: filename,
-				types: [{ description: exporter.label, accept: { [exporter.mime]: [`.${exporter.ext}`] } }],
+				types: [{ description: exporter.label, accept: { [acceptMime]: [`.${exporter.ext}`] } }],
 			});
 			const writable = await handle.createWritable();
 			await writable.write(blob);
