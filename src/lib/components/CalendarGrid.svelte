@@ -4,10 +4,10 @@
 
 	let { grid }: { grid: GridResult } = $props();
 
-	/** Date column width in px; must match `.c-date` width (`--col-w`) in panda.config.ts. */
-	const COL_W = 74;
 	/** Extra columns rendered beyond the viewport so fast scrolling never shows gaps. */
 	const OVERSCAN = 8;
+	/** Fallback column width (≈ the 4.6rem in panda.config) until a cell is measured. */
+	const COL_W_GUESS = 74;
 
 	// Per-column presentation depends only on the date, not the calendar or row, so
 	// it's computed once per grid instead of re-derived for every one of the cells.
@@ -21,13 +21,22 @@
 	let scroller = $state<HTMLDivElement>();
 	let scrollLeft = $state(0);
 	let viewportWidth = $state(0);
+	// Measured from a real header cell rather than hardcoded, so the scroll→column
+	// math tracks the actual rendered width through font-size, zoom, or CSS changes.
+	let colW = $state(COL_W_GUESS);
 
 	$effect(() => {
 		const el = scroller;
 		if (!el) return;
-		const ro = new ResizeObserver(() => (viewportWidth = el.clientWidth));
+		const measure = () => {
+			viewportWidth = el.clientWidth;
+			const cell = el.querySelector(".c-date");
+			const w = cell?.getBoundingClientRect().width ?? 0;
+			if (w > 0) colW = w;
+		};
+		const ro = new ResizeObserver(measure);
 		ro.observe(el);
-		viewportWidth = el.clientWidth;
+		measure();
 		return () => ro.disconnect();
 	});
 
@@ -42,19 +51,19 @@
 	}
 
 	const n = $derived(columns.length);
-	const first = $derived(Math.max(0, Math.floor(scrollLeft / COL_W) - OVERSCAN));
-	const last = $derived(Math.min(n, Math.ceil((scrollLeft + viewportWidth) / COL_W) + OVERSCAN));
+	const first = $derived(Math.max(0, Math.floor(scrollLeft / colW) - OVERSCAN));
+	const last = $derived(Math.min(n, Math.ceil((scrollLeft + viewportWidth) / colW) + OVERSCAN));
 	// Indices of the date columns to actually render; the rest are empty spacer cells.
 	const view = $derived.by(() => {
 		const out: number[] = [];
 		for (let i = first; i < last; i++) out.push(i);
 		return out;
 	});
-	const leftW = $derived(first * COL_W);
-	const rightW = $derived(Math.max(0, n - last) * COL_W);
+	const leftW = $derived(first * colW);
+	const rightW = $derived(Math.max(0, n - last) * colW);
 </script>
 
-<div class="grid-wrap" bind:this={scroller} onscroll={onScroll} style="--col-w:{COL_W}px">
+<div class="grid-wrap" bind:this={scroller} onscroll={onScroll}>
 	<table class="grid">
 		<thead>
 			<tr>

@@ -135,9 +135,14 @@ export default defineConfig({
 		},
 		"table.grid": {
 			// Fixed layout skips the per-cell measurement pass auto layout does across
-			// the whole (very wide) table, and gives the date columns a known width the
-			// virtualizer uses to map scroll offset to a column range.
+			// the whole (very wide) table, and pins every date column to one uniform
+			// width that the virtualizer measures to map scroll offset to a column range.
 			tableLayout: "fixed",
+			// Size to the sum of column widths — including the giant off-screen spacer
+			// cells — so the scroll extent spans the full date range. Without this a
+			// fixed-layout table shrinks to its container and collapses the spacers to
+			// zero, ending the scroll far short of the last column.
+			width: "max-content",
 			borderCollapse: "separate",
 			borderSpacing: 0,
 			fontSize: "0.82rem",
@@ -162,7 +167,7 @@ export default defineConfig({
 			fontWeight: 600,
 			borderBottom: "2px solid token(colors.grid.line)",
 		},
-		".c-date": { textAlign: "center", width: "var(--col-w, 4.6rem)" },
+		".c-date": { textAlign: "center", width: "4.6rem" },
 		".c-date .d-date": { display: "block", fontWeight: 600 },
 		".c-date .d-wd": {
 			display: "block",
