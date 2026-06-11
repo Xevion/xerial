@@ -1,0 +1,332 @@
+:root {
+  --excel-green: #217346;
+  --excel-green-dark: #1a5c38;
+  --grid-line: #d4d4d4;
+  --grid-header-bg: #f3f3f3;
+  --grid-header-fg: #444;
+  --rownum-bg: #f3f3f3;
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --text: #1f1f1f;
+  --muted: #6b6b6b;
+  --border: #e2e2e2;
+  --selection: #e8f2ec;
+  font-family: "Segoe UI", Calibri, system-ui, -apple-system, sans-serif;
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: var(--excel-green);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.brand .logo {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+}
+
+.brand .arrow {
+  opacity: 0.8;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 5px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.btn.primary {
+  background: #fff;
+  color: var(--excel-green-dark);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: #eef6f1;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 1rem;
+  gap: 0.75rem;
+}
+
+.dropzone {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--grid-line);
+  border-radius: 10px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dropzone:hover,
+.dropzone:focus-visible {
+  border-color: var(--excel-green);
+  outline: none;
+}
+
+.dropzone.dragging {
+  border-color: var(--excel-green);
+  background: var(--selection);
+}
+
+.drop-inner {
+  text-align: center;
+  padding: 2rem;
+}
+
+.drop-icon {
+  font-size: 2.5rem;
+  color: var(--excel-green);
+  margin-bottom: 0.5rem;
+}
+
+.drop-title {
+  font-size: 1.15rem;
+  margin: 0.25rem 0;
+}
+
+.drop-sub {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.2rem 0;
+}
+
+.error {
+  color: #b3261e;
+  font-size: 0.9rem;
+}
+
+.error.inline {
+  margin-left: auto;
+}
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.meta-file {
+  font-weight: 600;
+}
+
+.meta-bits {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--excel-green);
+}
+
+.dims {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.warn {
+  color: #8a6d00;
+  font-size: 0.82rem;
+}
+
+.grid-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--grid-line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+table.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+table.grid th,
+table.grid td {
+  border-right: 1px solid var(--grid-line);
+  border-bottom: 1px solid var(--grid-line);
+  padding: 0.2rem 0.5rem;
+  text-align: right;
+}
+
+table.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--grid-header-bg);
+  color: var(--grid-header-fg);
+  font-weight: 600;
+  border-bottom: 2px solid var(--grid-line);
+}
+
+.c-date {
+  text-align: center;
+  min-width: 4.6rem;
+}
+
+.c-date .d-date {
+  display: block;
+  font-weight: 600;
+}
+
+.c-date .d-wd {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.c-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--rownum-bg);
+  text-align: left;
+  font-weight: 600;
+  width: 12rem;
+  min-width: 12rem;
+  white-space: normal;
+  vertical-align: top;
+}
+
+/* Second frozen column sits immediately right of the 12rem name column. */
+.c-label {
+  position: sticky;
+  left: 12rem;
+  z-index: 1;
+  background: var(--rownum-bg);
+  color: var(--muted);
+  text-align: left;
+  font-weight: 600;
+  min-width: 6rem;
+}
+
+table.grid thead .c-name,
+table.grid thead .c-label {
+  z-index: 3;
+}
+
+.num.off {
+  color: #c4c4c4;
+}
+
+td.weekend {
+  background: #f7f7f7;
+}
+
+.r-total .num {
+  font-weight: 600;
+}
+
+table.grid tbody tr:hover td.num {
+  background: var(--selection);
+}
+
+.trunc {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .brand {
+    font-size: 0.9rem;
+  }
+  main {
+    padding: 0.6rem;
+  }
+}
