@@ -23,6 +23,10 @@ export default defineConfig({
 				button: buttonRecipe,
 			},
 
+			keyframes: {
+				spin: { to: { transform: "rotate(360deg)" } },
+			},
+
 			tokens: {
 				colors: {
 					// Branded Excel green, reused across light/dark accents.
@@ -82,6 +86,18 @@ export default defineConfig({
 				shadows: {
 					topbar: {
 						value: { base: "0 1px 3px rgba(0, 0, 0, 0.15)", _dark: "0 1px 3px rgba(0, 0, 0, 0.5)" },
+					},
+					card: {
+						value: {
+							base: "0 10px 30px rgba(0, 0, 0, 0.10)",
+							_dark: "0 14px 34px rgba(0, 0, 0, 0.45)",
+						},
+					},
+					menu: {
+						value: {
+							base: "0 8px 24px rgba(0, 0, 0, 0.14)",
+							_dark: "0 8px 24px rgba(0, 0, 0, 0.5)",
+						},
 					},
 				},
 			},
@@ -171,6 +187,12 @@ export default defineConfig({
 			minWidth: "6rem",
 		},
 		"table.grid thead .c-name, table.grid thead .c-label": { zIndex: 3 },
+		// The frozen top-left corner reads as part of the header strip, with a thin
+		// accent rule echoing the ribbon — Excel's "select all" corner.
+		".c-corner": {
+			backgroundColor: "grid.headerBg",
+			boxShadow: "inset 0 -2px 0 token(colors.accent)",
+		},
 		".num.off": { color: "grid.numOff" },
 		"td.weekend": { backgroundColor: "grid.weekend" },
 		".r-total .num": { fontWeight: 600 },
