@@ -1,0 +1,13 @@
+# Normalize line endings to LF across machines.
+* text=auto eol=lf
+
+# Generated / vendored — collapse in diffs and exclude from language stats.
+bun.lock -diff linguist-generated
+styled-system/** linguist-generated -diff
+
+# Binary-ish assets.
+*.svg -text
+*.png binary
+*.ico binary
+*.woff binary
+*.woff2 binary

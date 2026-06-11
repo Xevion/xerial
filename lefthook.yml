@@ -1,0 +1,24 @@
+# Lefthook drives git hooks; the actual check orchestration lives in tempo.config.ts.
+# Install locally with `bun run hooks:install` (lefthook install).
+
+pre-commit:
+  # Sequential: format staged files first, then lint the (now-formatted) result.
+  parallel: false
+  jobs:
+    - name: sort-package-json
+      glob: "package.json"
+      run: bunx sort-package-json {staged_files}
+      stage_fixed: true
+    - name: format
+      # `tempo pre-commit` formats staged files with partial-staging safety
+      # (won't clobber unstaged hunks in a partially-staged file).
+      run: bunx tempo pre-commit
+    - name: lint
+      glob: "*.{ts,js,svelte}"
+      # Read-only lint gate on staged files. Type-check + knip run in `tempo check` / CI.
+      run: bunx eslint --no-warn-ignored {staged_files}
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: bunx commitlint --edit {1}

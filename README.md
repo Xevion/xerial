@@ -13,14 +13,15 @@ include calendars not referenced by any activity.
 
 ## Develop
 
-[Bun](https://bun.sh) + [Vite](https://vite.dev) + [Svelte 5](https://svelte.dev).
+[Bun](https://bun.sh) + [SvelteKit](https://svelte.dev/docs/kit) (Svelte 5) on
+[Vite](https://vite.dev), styled with [Panda CSS](https://panda-css.com).
 
 ```bash
 bun install
-bun run dev       # local dev server (HMR)
-bun run check     # svelte-check / typecheck
+bun run dev       # Vite dev server (HMR)
+bun run check     # tempo: format / lint / types / knip / spell / test
 bun test          # parser + grid unit tests
-bun run build     # production bundle -> dist/
+bun run build     # static bundle -> build/
 ```
 
 ## The format

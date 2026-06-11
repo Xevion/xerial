@@ -16,6 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Checks/tests run in ci.yml; this workflow only builds and publishes.
   build:
     runs-on: ubuntu-latest
     steps:
@@ -23,24 +24,20 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version-file: package.json
 
       - run: bun install --frozen-lockfile
 
-      - run: bun run check
-
-      - run: bun test
-
-      # Build with the base path matching the Pages URL (/<repo>/).
+      # SvelteKit paths.base must match the Pages URL (/<repo>), no trailing slash.
       - run: bun run build
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
+          BASE_PATH: /${{ github.event.repository.name }}
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: build
 
   deploy:
     needs: build

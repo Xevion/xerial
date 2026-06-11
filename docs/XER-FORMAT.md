@@ -4,13 +4,13 @@ XER is Oracle Primavera P6's interchange format: a flat, tab-delimited text dump
 of the P6 relational database. Not XML, not binary. Every line starts with a
 record-type token in column 0:
 
-| Token    | Meaning |
-| -------- | ------- |
+| Token    | Meaning                                                              |
+| -------- | -------------------------------------------------------------------- |
 | `ERMHDR` | One per file. Header: version, export date, user, DB, app, currency. |
-| `%T`     | Begins a table. Column 1 is the table name (e.g. `TASK`). |
-| `%F`     | Field names for the table currently in scope. |
-| `%R`     | A data record. Columns map positionally onto the preceding `%F`. |
-| `%E`     | End-of-file marker. |
+| `%T`     | Begins a table. Column 1 is the table name (e.g. `TASK`).            |
+| `%F`     | Field names for the table currently in scope.                        |
+| `%R`     | A data record. Columns map positionally onto the preceding `%F`.     |
+| `%E`     | End-of-file marker.                                                  |
 
 Things the parser has to deal with:
 
@@ -25,18 +25,18 @@ Things the parser has to deal with:
 
 It's a SQL dump — tables join on `*_id` columns.
 
-| Table | Row = one... | Key joins |
-| ----- | ------------ | --------- |
-| `PROJECT`  | project / baseline      | `proj_id` |
-| `PROJWBS`  | WBS node                | `wbs_id`, `parent_wbs_id` -> `PROJWBS` (tree) |
-| `TASK`     | activity                | `task_id`; FK `proj_id`, `wbs_id`, `clndr_id` |
-| `TASKPRED` | logic relationship      | `task_id` (successor) + `pred_task_id` (predecessor) |
-| `TASKRSRC` | resource assignment     | FK `task_id`, `rsrc_id` |
-| `TASKACTV` | activity-code assignment| FK `task_id`, `actv_code_id` |
-| `RSRC`     | resource                | `rsrc_id`, `parent_rsrc_id` (tree) |
-| `ACTVTYPE` / `ACTVCODE` | activity-code type / value | `actv_code_type_id` / `actv_code_id` |
-| `CALENDAR` | work calendar           | `clndr_id`; work pattern packed in `clndr_data` |
-| `UDFTYPE` / `UDFVALUE` | user-defined field def / value | `udf_type_id`, `fk_id` |
+| Table                   | Row = one...                   | Key joins                                            |
+| ----------------------- | ------------------------------ | ---------------------------------------------------- |
+| `PROJECT`               | project / baseline             | `proj_id`                                            |
+| `PROJWBS`               | WBS node                       | `wbs_id`, `parent_wbs_id` -> `PROJWBS` (tree)        |
+| `TASK`                  | activity                       | `task_id`; FK `proj_id`, `wbs_id`, `clndr_id`        |
+| `TASKPRED`              | logic relationship             | `task_id` (successor) + `pred_task_id` (predecessor) |
+| `TASKRSRC`              | resource assignment            | FK `task_id`, `rsrc_id`                              |
+| `TASKACTV`              | activity-code assignment       | FK `task_id`, `actv_code_id`                         |
+| `RSRC`                  | resource                       | `rsrc_id`, `parent_rsrc_id` (tree)                   |
+| `ACTVTYPE` / `ACTVCODE` | activity-code type / value     | `actv_code_type_id` / `actv_code_id`                 |
+| `CALENDAR`              | work calendar                  | `clndr_id`; work pattern packed in `clndr_data`      |
+| `UDFTYPE` / `UDFVALUE`  | user-defined field def / value | `udf_type_id`, `fk_id`                               |
 
 Common enum prefixes: `TK_` task status, `TT_` task type, `PR_` relationship type
 (FS/SS/FF/SF), `DT_` duration type, `CP_`/`QT_` percent-complete and quantity types.

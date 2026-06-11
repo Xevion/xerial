@@ -1,0 +1,20 @@
+{
+	"version": "0.2",
+	"language": "en",
+	"dictionaryDefinitions": [
+		{ "name": "project-words", "path": "./project-words.txt", "addWords": true }
+	],
+	"dictionaries": ["project-words"],
+	"useGitignore": true,
+	"ignorePaths": [
+		"styled-system/**",
+		".svelte-kit/**",
+		"build/**",
+		"dist/**",
+		"node_modules/**",
+		"bun.lock",
+		"static/**",
+		"*.svg"
+	],
+	"ignoreRegExpList": ["/#[0-9a-fA-F]{3,8}\\b/", "/data:[^)]+/"]
+}

@@ -1,0 +1,22 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:recommended", ":semanticCommits", ":semanticCommitScope(deps)"],
+	"schedule": ["before 6am on monday"],
+	"labels": ["dependencies"],
+	"lockFileMaintenance": {
+		"enabled": true,
+		"schedule": ["before 6am on monday"]
+	},
+	"packageRules": [
+		{
+			"description": "Group non-major updates into a single PR",
+			"matchUpdateTypes": ["minor", "patch"],
+			"groupName": "non-major dependencies"
+		},
+		{
+			"description": "Keep the bun toolchain pin in sync with mise/CI",
+			"matchPackageNames": ["oven-sh/setup-bun"],
+			"groupName": "github actions"
+		}
+	]
+}

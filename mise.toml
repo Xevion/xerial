@@ -1,0 +1,5 @@
+# Pinned toolchain — `mise install` provisions these. Bun version mirrors
+# package.json's `packageManager` field (kept in sync manually on upgrade).
+[tools]
+bun = "1.3.11"
+node = "25.8.2"

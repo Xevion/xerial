@@ -7,33 +7,27 @@
  * The Bun-only `readXerFile` lives in `./node` and is intentionally absent here.
  */
 
-export {
-  parseXer,
-  decodeXer,
-  type XerHeader,
-  type XerTable,
-  type XerDocument,
-} from "./xer";
+export { parseXer, decodeXer, type XerHeader, type XerTable, type XerDocument } from "./xer";
 
 export {
-  decodeCalendar,
-  serialToDate,
-  dateToSerial,
-  type Shift,
-  type Weekday,
-  type CalendarException,
-  type DecodedCalendar,
+	decodeCalendar,
+	serialToDate,
+	dateToSerial,
+	type Shift,
+	type Weekday,
+	type CalendarException,
+	type DecodedCalendar,
 } from "./calendar";
 
 export {
-  buildGrid,
-  GridError,
-  formatDate,
-  formatTime,
-  formatHours,
-  weekdayLabel,
-  type DayInfo,
-  type CalendarGrid,
-  type GridResult,
-  type GridOptions,
+	buildGrid,
+	GridError,
+	formatDate,
+	formatTime,
+	formatHours,
+	weekdayLabel,
+	type DayInfo,
+	type CalendarGrid,
+	type GridResult,
+	type GridOptions,
 } from "./grid";

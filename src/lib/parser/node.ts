@@ -8,6 +8,6 @@ import { parseXer, decodeXer, type XerDocument } from "./xer";
 
 /** Read and parse an XER file from disk (Bun runtime). */
 export async function readXerFile(path: string): Promise<XerDocument> {
-  const bytes = new Uint8Array(await Bun.file(path).arrayBuffer());
-  return parseXer(decodeXer(bytes));
+	const bytes = new Uint8Array(await Bun.file(path).arrayBuffer());
+	return parseXer(decodeXer(bytes));
 }
