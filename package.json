@@ -21,7 +21,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.17.0",
-		"exceljs": "^4.4.0"
+		"excel-builder-vanilla": "^5.0.1"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^21.0.2",

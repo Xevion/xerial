@@ -10,7 +10,7 @@ clndr
 codegen
 commitlint
 ermhdr
-exceljs
+fflate
 fouc
 gridpack
 jdoe
