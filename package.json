@@ -7,10 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "prepare": "panda codegen",
+    "codegen": "panda codegen",
+    "check": "panda codegen && svelte-check --tsconfig ./tsconfig.json",
     "test": "bun test"
   },
   "devDependencies": {
+    "@pandacss/dev": "^1.11.3",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@types/bun": "latest",
     "svelte": "^5.56.3",

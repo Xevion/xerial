@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 
@@ -9,4 +10,9 @@ const base = process.env.BASE_PATH ?? "/xerial/";
 export default defineConfig({
   base,
   plugins: [svelte()],
+  resolve: {
+    alias: {
+      "styled-system": fileURLToPath(new URL("./styled-system", import.meta.url)),
+    },
+  },
 });

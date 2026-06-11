@@ -12,6 +12,9 @@ coverage
 .idea
 .DS_Store
 
+# panda codegen output
+styled-system
+
 # data exports (not for sharing)
 *.xer
 *.xlsx
