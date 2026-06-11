@@ -4,11 +4,12 @@
  * and feeds it through the exact same decode → parse → grid path a dropped file
  * takes — so the sample exercises the real pipeline, not a shortcut.
  *
- * The generated content is pure ASCII, so UTF-8 and the parser's Windows-1252
- * decode agree byte-for-byte; `TextEncoder` is enough.
+ * Bytes are produced with `encodeXer` (cp1252), exactly as a real P6 export would
+ * be — so non-ASCII names like the en-dash in "Mon–Thu" survive the round-trip
+ * instead of turning to mojibake the way a UTF-8 `TextEncoder` would.
  */
 
-import { isoToSerial } from "./parser";
+import { encodeXer, isoToSerial } from "./parser";
 
 const CRLF = "\r\n";
 
@@ -131,5 +132,5 @@ function buildSampleXer(): string {
 
 /** The sample file's raw bytes plus the name it should appear under. */
 export function sampleXer(): { name: string; bytes: Uint8Array } {
-	return { name: "sample-project.xer", bytes: new TextEncoder().encode(buildSampleXer()) };
+	return { name: "sample-project.xer", bytes: encodeXer(buildSampleXer()) };
 }

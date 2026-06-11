@@ -59,6 +59,37 @@ export function decodeXer(bytes: Uint8Array): string {
 	return DECODER.decode(bytes);
 }
 
+/**
+ * Reverse of cp1252 decoding, derived from `DECODER` so the two stay in lockstep:
+ * code point → byte for every byte the decoder produces. `TextEncoder` only does
+ * UTF-8, so anything writing XER bytes must come through here instead — otherwise
+ * a non-ASCII glyph becomes multi-byte UTF-8 and turns to mojibake when read back.
+ */
+const ENCODE_MAP = (() => {
+	const map = new Map<number, number>();
+	for (let b = 0; b <= 0xff; b++) {
+		const cp = DECODER.decode(new Uint8Array([b])).codePointAt(0);
+		if (cp !== undefined && !map.has(cp)) map.set(cp, b);
+	}
+	return map;
+})();
+
+/** Encode a string to XER bytes using cp1252; throws on code points it can't represent. */
+export function encodeXer(text: string): Uint8Array {
+	const bytes: number[] = [];
+	for (const ch of text) {
+		const cp = ch.codePointAt(0);
+		if (cp === undefined) continue;
+		const byte = ENCODE_MAP.get(cp);
+		if (byte === undefined) {
+			const hex = cp.toString(16).toUpperCase().padStart(4, "0");
+			throw new Error(`Cannot encode U+${hex} ('${ch}') as Windows-1252.`);
+		}
+		bytes.push(byte);
+	}
+	return Uint8Array.from(bytes);
+}
+
 function parseHeader(fields: string[]): XerHeader {
 	// ERMHDR\t<version>\t<date>\t<projlabel>\t<user>\t<fullname>\t<db>\t<module>\t<currency>
 	const [, version, exportDate, projectFlag, user, userFullName, database, moduleName, currency] =

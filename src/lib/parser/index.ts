@@ -9,7 +9,14 @@
  * `readXerFile` lives in `./node` and is intentionally absent here.
  */
 
-export { decodeXer, parseXer, type XerDocument, type XerHeader, type XerTable } from "./xer";
+export {
+	decodeXer,
+	encodeXer,
+	parseXer,
+	type XerDocument,
+	type XerHeader,
+	type XerTable,
+} from "./xer";
 
 export {
 	decodeCalendar,

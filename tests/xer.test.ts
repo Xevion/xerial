@@ -1,6 +1,6 @@
 import { test, expect, describe } from "bun:test";
 
-import { parseXer, decodeXer } from "../src/lib/parser";
+import { parseXer, decodeXer, encodeXer } from "../src/lib/parser";
 import { buildXer } from "./fixtures/builder";
 
 describe("decodeXer (Windows-1252)", () => {
@@ -12,6 +12,28 @@ describe("decodeXer (Windows-1252)", () => {
 
 	test("plain ASCII is unchanged", () => {
 		expect(decodeXer(new Uint8Array([0x41, 0x42, 0x43]))).toBe("ABC");
+	});
+});
+
+describe("encodeXer (Windows-1252)", () => {
+	test("encodes non-ASCII as single cp1252 bytes, not multi-byte UTF-8", () => {
+		// The bug: an en-dash UTF-8-encoded to E2 80 93 becomes mojibake when read as cp1252.
+		expect(Array.from(encodeXer("–"))).toEqual([0x96]);
+		expect(Array.from(encodeXer("£"))).toEqual([0xa3]);
+		expect(Array.from(encodeXer("€"))).toEqual([0x80]);
+	});
+
+	test("plain ASCII is unchanged", () => {
+		expect(Array.from(encodeXer("ABC"))).toEqual([0x41, 0x42, 0x43]);
+	});
+
+	test("round-trips through decodeXer", () => {
+		const s = "4-Day Maintenance (Mon–Thu) £€";
+		expect(decodeXer(encodeXer(s))).toBe(s);
+	});
+
+	test("throws on characters cp1252 cannot represent", () => {
+		expect(() => encodeXer("🚀")).toThrow();
 	});
 });
 
