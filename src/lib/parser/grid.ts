@@ -1,20 +1,26 @@
+import type { CalendarRow, TaskRow } from "./schema";
 import type { XerDocument } from "./xer";
 
+import { decodeCalendar, type DecodedCalendar, type Shift } from "./calendar";
+import { Diagnostics, type Diagnostic } from "./diagnostics";
 import {
-	decodeCalendar,
-	dateToSerial,
-	serialToDate,
-	type DecodedCalendar,
-	type CalendarException,
-} from "./calendar";
+	isoToSerial,
+	jsWeekdayOf,
+	minutes,
+	minutesToFraction,
+	parseHM,
+	rangeInclusive,
+	type DayFraction,
+	type Serial,
+} from "./time";
 
 /** Effective shifts for one calendar on one day. */
 export interface DayInfo {
 	working: boolean;
 	/** Day fraction (0..1) of earliest start, or null when non-working. */
-	start: number | null;
+	start: DayFraction | null;
 	/** Day fraction (0..1) of latest finish, or null when non-working. */
-	end: number | null;
+	end: DayFraction | null;
 	hours: number;
 }
 
@@ -25,56 +31,76 @@ export interface CalendarGrid {
 	days: DayInfo[];
 }
 
+export interface SkippedCalendar {
+	clndrId: string;
+	name: string;
+	reason: string;
+}
+
 export interface GridResult {
 	startIso: string;
 	endIso: string;
 	/** Excel date serials for the columns, left to right. */
-	serials: number[];
+	serials: Serial[];
 	calendars: CalendarGrid[];
-	/** Calendars whose clndr_data failed to decode. */
-	skipped: { clndrId: string; name: string; reason: string }[];
+	/** Calendars whose clndr_data failed to decode (a view over `diagnostics`). */
+	skipped: SkippedCalendar[];
+	/** Non-fatal problems encountered while building the grid. */
+	diagnostics: Diagnostic[];
 }
 
 export class GridError extends Error {}
 
-/** "HH:MM" -> day fraction (0..1). */
-function timeFraction(t: string): number {
-	const [h, m] = t.split(":");
-	return (Number(h) * 60 + Number(m ?? 0)) / 1440;
+export interface GridOptions {
+	/** Include every CALENDAR row, not just those used by tasks. */
+	includeAll?: boolean;
+	startIso?: string;
+	endIso?: string;
 }
 
-function dayInfo(
-	weekdayHours: Map<number, DecodedCalendar["weekdays"][number]>,
-	exceptionsBySerial: Map<number, CalendarException>,
-	serial: number,
-): DayInfo {
-	const exception = exceptionsBySerial.get(serial);
-	let shifts: { start: string; finish: string }[];
-	let hours: number;
+const NON_WORKING: DayInfo = { working: false, start: null, end: null, hours: 0 };
 
-	if (exception) {
-		shifts = exception.shifts;
-		hours = exception.hours;
-	} else {
-		const jsDay = serialToDate(serial).getUTCDay(); // 0=Sun..6=Sat
-		const wd = weekdayHours.get(jsDay + 1); // P6 index 1=Sun..7=Sat
-		shifts = wd?.shifts ?? [];
-		hours = wd?.hours ?? 0;
-	}
-
-	if (shifts.length === 0) return { working: false, start: null, end: null, hours: 0 };
-
-	let start = Infinity;
-	let end = -Infinity;
+/** Collapse a day's shifts into its earliest start / latest finish / total hours. */
+function dayInfoFor(shifts: Shift[], hours: number): DayInfo {
+	if (shifts.length === 0) return NON_WORKING;
+	let startMin = Infinity;
+	let endMin = -Infinity;
 	for (const s of shifts) {
-		start = Math.min(start, timeFraction(s.start));
-		end = Math.max(end, timeFraction(s.finish));
+		startMin = Math.min(startMin, parseHM(s.start));
+		endMin = Math.max(endMin, parseHM(s.finish));
 	}
-	return { working: true, start, end, hours };
+	return {
+		working: true,
+		start: minutesToFraction(minutes(startMin)),
+		end: minutesToFraction(minutes(endMin)),
+		hours,
+	};
+}
+
+/**
+ * Expand a decoded calendar across the serial axis. The weekly pattern repeats,
+ * so the seven weekday `DayInfo`s and each exception are computed once and the
+ * per-day loop is a pure lookup — no per-cell date math.
+ */
+function expandDays(decoded: DecodedCalendar, serials: Serial[], jsWeekdays: number[]): DayInfo[] {
+	const weekdayInfos = new Map<number, DayInfo>();
+	for (const [jsDay, wd] of decoded.weekdaysByJsDay) {
+		weekdayInfos.set(jsDay, dayInfoFor(wd.shifts, wd.hours));
+	}
+	const exceptionInfos = new Map<number, DayInfo>();
+	for (const e of decoded.exceptions) {
+		exceptionInfos.set(e.serial, dayInfoFor(e.shifts, e.hours));
+	}
+	return serials.map(
+		(s, i) => exceptionInfos.get(s) ?? weekdayInfos.get(jsWeekdays[i] ?? -1) ?? NON_WORKING,
+	);
 }
 
 /** Auto-detect the activity date envelope (ISO yyyy-mm-dd) from TASK rows. */
-function activitySpan(tasks: Record<string, string>[]): { startIso?: string; endIso?: string } {
+function activitySpan(tasks: TaskRow[]): {
+	startIso: string | undefined;
+	endIso: string | undefined;
+} {
 	const startFields = ["act_start_date", "early_start_date", "target_start_date", "restart_date"];
 	const endFields = ["act_end_date", "early_end_date", "target_end_date", "reend_date"];
 	let mn: string | null = null;
@@ -92,11 +118,48 @@ function activitySpan(tasks: Record<string, string>[]): { startIso?: string; end
 	return { startIso: mn ?? undefined, endIso: mx ?? undefined };
 }
 
-export interface GridOptions {
-	/** Include every CALENDAR row, not just those used by tasks. */
-	includeAll?: boolean;
-	startIso?: string;
-	endIso?: string;
+/** Resolve the date span (from options or auto-detection) to a serial axis. */
+function resolveSpan(
+	tasks: TaskRow[],
+	opts: GridOptions,
+): { startIso: string; endIso: string; serials: Serial[] } {
+	const auto = activitySpan(tasks);
+	const startIso = opts.startIso ?? auto.startIso;
+	const endIso = opts.endIso ?? auto.endIso;
+	if (!startIso || !endIso) {
+		throw new GridError("Could not determine a date span — no activity dates found.");
+	}
+
+	const minSerial = isoToSerial(startIso);
+	const maxSerial = isoToSerial(endIso);
+	if (!Number.isFinite(minSerial) || !Number.isFinite(maxSerial)) {
+		throw new GridError(`Invalid date span: ${startIso} → ${endIso}.`);
+	}
+	if (maxSerial < minSerial) throw new GridError("End date is before start date.");
+
+	return { startIso, endIso, serials: rangeInclusive(minSerial, maxSerial) };
+}
+
+/**
+ * Pick which calendars to expand: by default only those referenced by tasks
+ * (most-used first); all of them when nothing is referenced or `includeAll`.
+ */
+function resolveCalendarRows(
+	cals: CalendarRow[],
+	tasks: TaskRow[],
+	includeAll: boolean,
+): CalendarRow[] {
+	const usage = new Map<string, number>();
+	for (const t of tasks) {
+		const id = t.clndr_id ?? "";
+		usage.set(id, (usage.get(id) ?? 0) + 1);
+	}
+	const used = (c: CalendarRow) => usage.get(c.clndr_id ?? "") ?? 0;
+
+	let rows = cals;
+	const anyUsed = rows.some((c) => used(c) > 0);
+	if (!includeAll && anyUsed) rows = rows.filter((c) => used(c) > 0);
+	return [...rows].sort((a, b) => used(b) - used(a));
 }
 
 /** Expand a parsed XER document into a day-by-day calendar grid. */
@@ -105,81 +168,29 @@ export function buildGrid(doc: XerDocument, opts: GridOptions = {}): GridResult 
 	const tasks = doc.table("TASK")?.rows ?? [];
 	if (cals.length === 0) throw new GridError("No CALENDAR table in this file.");
 
-	const usage = new Map<string, number>();
-	for (const t of tasks) {
-		const id = t.clndr_id ?? "";
-		usage.set(id, (usage.get(id) ?? 0) + 1);
-	}
+	const { startIso, endIso, serials } = resolveSpan(tasks, opts);
+	const jsWeekdays = serials.map(jsWeekdayOf);
+	const rows = resolveCalendarRows(cals, tasks, opts.includeAll ?? false);
 
-	const auto = activitySpan(tasks);
-	const startIso = opts.startIso ?? auto.startIso;
-	const endIso = opts.endIso ?? auto.endIso;
-	if (!startIso || !endIso) {
-		throw new GridError("Could not determine a date span — no activity dates found.");
-	}
-
-	const minSerial = dateToSerial(new Date(`${startIso}T00:00:00Z`));
-	const maxSerial = dateToSerial(new Date(`${endIso}T00:00:00Z`));
-	if (maxSerial < minSerial) throw new GridError("End date is before start date.");
-	const nDays = maxSerial - minSerial + 1;
-	const serials = Array.from({ length: nDays }, (_, i) => minSerial + i);
-
-	// Default to calendars actually used by tasks; fall back to all when none are.
-	const used = (c: Record<string, string>) => usage.get(c.clndr_id ?? "") ?? 0;
-	let rows = cals;
-	const anyUsed = rows.some((c) => used(c) > 0);
-	if (!opts.includeAll && anyUsed) rows = rows.filter((c) => used(c) > 0);
-	rows = [...rows].sort((a, b) => used(b) - used(a));
-
+	const diagnostics = new Diagnostics();
 	const calendars: CalendarGrid[] = [];
-	const skipped: GridResult["skipped"] = [];
+	const skipped: SkippedCalendar[] = [];
 
 	for (const c of rows) {
-		let decoded: DecodedCalendar;
-		try {
-			decoded = decodeCalendar(c.clndr_data ?? "");
-		} catch (err) {
-			skipped.push({
-				clndrId: c.clndr_id ?? "",
-				name: c.clndr_name ?? "",
-				reason: (err as Error).message,
-			});
+		const clndrId = c.clndr_id ?? "";
+		const name = c.clndr_name ?? "";
+		const result = decodeCalendar(c.clndr_data ?? "");
+		if (!result.ok) {
+			skipped.push({ clndrId, name, reason: result.error });
+			diagnostics.warn(
+				"CALENDAR_DECODE_FAILED",
+				`Calendar '${name || clndrId}' could not be decoded: ${result.error}`,
+				{ clndrId, name },
+			);
 			continue;
 		}
-		const weekdayHours = new Map(decoded.weekdays.map((w) => [w.index, w]));
-		const exceptionsBySerial = new Map(decoded.exceptions.map((e) => [e.serial, e]));
-		calendars.push({
-			clndrId: c.clndr_id ?? "",
-			name: c.clndr_name ?? "",
-			days: serials.map((s) => dayInfo(weekdayHours, exceptionsBySerial, s)),
-		});
+		calendars.push({ clndrId, name, days: expandDays(result.value, serials, jsWeekdays) });
 	}
 
-	return { startIso, endIso, serials, calendars, skipped };
-}
-
-/** Excel date serial -> "m/d/yyyy" (UTC), matching the .xlsx date format. */
-export function formatDate(serial: number): string {
-	const d = serialToDate(serial);
-	return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
-}
-
-/** Short weekday label for a date serial (UTC). */
-export function weekdayLabel(serial: number): string {
-	return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][serialToDate(serial).getUTCDay()] ?? "";
-}
-
-/** Day fraction (0..1) -> "h:mm AM/PM". */
-export function formatTime(fraction: number): string {
-	const total = Math.round(fraction * 1440);
-	const h24 = Math.floor(total / 60) % 24;
-	const m = total % 60;
-	const ampm = h24 < 12 ? "AM" : "PM";
-	const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-	return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
-}
-
-/** Hours with up to two decimals, trailing zeros trimmed (Excel "0.##"). */
-export function formatHours(hours: number): string {
-	return String(Math.round(hours * 100) / 100);
+	return { startIso, endIso, serials, calendars, skipped, diagnostics: diagnostics.all() };
 }

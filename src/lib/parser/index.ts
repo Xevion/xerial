@@ -4,30 +4,53 @@
  * calendars into a day-by-day grid. No runtime-specific APIs — this barrel is
  * what the frontend imports.
  *
- * The Bun-only `readXerFile` lives in `./node` and is intentionally absent here.
+ * The data model is presentation-agnostic: grids carry raw serials, day-fractions,
+ * and hours. Formatting and export live in `$lib/export`. The Bun-only
+ * `readXerFile` lives in `./node` and is intentionally absent here.
  */
 
-export { parseXer, decodeXer, type XerHeader, type XerTable, type XerDocument } from "./xer";
+export { decodeXer, parseXer, type XerDocument, type XerHeader, type XerTable } from "./xer";
 
 export {
 	decodeCalendar,
-	serialToDate,
-	dateToSerial,
-	type Shift,
-	type Weekday,
 	type CalendarException,
 	type DecodedCalendar,
+	type DecodeResult,
+	type Shift,
+	type Weekday,
 } from "./calendar";
+
+export {
+	addDays,
+	dateToSerial,
+	dayFraction,
+	fractionToMinutes,
+	isoToSerial,
+	jsWeekdayOf,
+	minutes,
+	minutesToFraction,
+	parseHM,
+	rangeInclusive,
+	serial,
+	serialToDate,
+	serialToIso,
+	shiftDurationMinutes,
+	type DayFraction,
+	type IsoDate,
+	type Minutes,
+	type Serial,
+} from "./time";
+
+export { Diagnostics, type Diagnostic, type DiagnosticCode, type Severity } from "./diagnostics";
+
+export type { CalendarRow, KnownTables, ProjectRow, RawRow, TaskRow } from "./schema";
 
 export {
 	buildGrid,
 	GridError,
-	formatDate,
-	formatTime,
-	formatHours,
-	weekdayLabel,
-	type DayInfo,
 	type CalendarGrid,
-	type GridResult,
+	type DayInfo,
 	type GridOptions,
+	type GridResult,
+	type SkippedCalendar,
 } from "./grid";

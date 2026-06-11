@@ -11,10 +11,13 @@ codegen
 commitlint
 ermhdr
 exceljs
+fouc
+gridpack
 jdoe
 knip
 lefthook
 mojibake
+motophoto
 officedocument
 openxmlformats
 panda
@@ -43,5 +46,7 @@ taskrsrc
 topbar
 udftype
 udfvalue
+unpadded
+unparseable
 xerial
 xevion

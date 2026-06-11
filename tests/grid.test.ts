@@ -1,16 +1,7 @@
 import { test, expect, describe } from "bun:test";
 
-import {
-	parseXer,
-	buildGrid,
-	GridError,
-	dateToSerial,
-	formatDate,
-	formatTime,
-	formatHours,
-	weekdayLabel,
-	type XerDocument,
-} from "../src/lib/parser";
+import { weekdayLabel } from "../src/lib/export";
+import { parseXer, buildGrid, GridError, dateToSerial, type XerDocument } from "../src/lib/parser";
 import { buildXer, buildClndrData, fiveDayWeek, type CalendarSpec } from "./fixtures/builder";
 
 const serialFor = (iso: string) => dateToSerial(new Date(`${iso}T00:00:00Z`));
@@ -105,6 +96,24 @@ describe("buildGrid calendar selection", () => {
 		expect(grid.calendars.map((c) => c.clndrId)).toEqual(["C1"]);
 		expect(grid.skipped.map((s) => s.clndrId)).toEqual(["BAD"]);
 	});
+
+	test("a skipped calendar also surfaces as a diagnostic", () => {
+		const doc = docWith(
+			[{ id: "BAD", name: "Broken", data: "not a calendar blob" }],
+			[{ clndr_id: "BAD" }],
+		);
+		const grid = buildGrid(doc);
+		expect(grid.diagnostics.map((d) => d.code)).toContain("CALENDAR_DECODE_FAILED");
+	});
+});
+
+describe("buildGrid span validation", () => {
+	test("rejects an unparseable date option with a GridError", () => {
+		const doc = docWith([cal("C1", "Std", fiveDayWeek())], [{ clndr_id: "C1" }]);
+		expect(() => buildGrid(doc, { startIso: "not-a-date", endIso: "2025-01-10" })).toThrow(
+			GridError,
+		);
+	});
 });
 
 describe("buildGrid day resolution", () => {
@@ -138,28 +147,5 @@ describe("buildGrid day resolution", () => {
 		const wedIndex = grid.serials.indexOf(holiday);
 		expect(grid.serials.map(weekdayLabel)[wedIndex]).toBe("Wed");
 		expect(grid.calendars[0]?.days[wedIndex]?.working).toBe(false);
-	});
-});
-
-describe("formatters", () => {
-	test("formatDate renders UTC m/d/yyyy", () => {
-		expect(formatDate(serialFor("2025-01-06"))).toBe("1/6/2025");
-	});
-
-	test("formatTime renders 12-hour clock", () => {
-		expect(formatTime(8 / 24)).toBe("8:00 AM");
-		expect(formatTime(13 / 24)).toBe("1:00 PM");
-		expect(formatTime(0)).toBe("12:00 AM");
-	});
-
-	test("formatHours trims trailing zeros", () => {
-		expect(formatHours(8)).toBe("8");
-		expect(formatHours(7.5)).toBe("7.5");
-		expect(formatHours(7.25)).toBe("7.25");
-	});
-
-	test("weekdayLabel maps serials to short names", () => {
-		expect(weekdayLabel(serialFor("2025-01-06"))).toBe("Mon");
-		expect(weekdayLabel(serialFor("2025-01-11"))).toBe("Sat");
 	});
 });

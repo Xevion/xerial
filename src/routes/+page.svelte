@@ -2,20 +2,24 @@
 	import { onMount } from "svelte";
 
 	import {
-		parseXer,
-		decodeXer,
-		buildGrid,
-		GridError,
 		formatDate,
 		formatTime,
 		formatHours,
 		weekdayLabel,
+		saveExport,
+		xlsxExporter,
+	} from "$lib/export";
+	import {
+		parseXer,
+		decodeXer,
+		buildGrid,
+		GridError,
+		type Serial,
 		type XerDocument,
 		type GridResult,
 	} from "$lib/parser";
 	import { savePersisted, loadPersisted, clearPersisted } from "$lib/persist";
 	import { themeStore } from "$lib/theme.svelte";
-	import { gridToXlsx, downloadBlob } from "$lib/xlsx";
 
 	import { css } from "styled-system/css";
 	import { button } from "styled-system/recipes";
@@ -138,7 +142,7 @@
 	let buildError = $state<string | null>(null);
 
 	const baseName = $derived(fileName.replace(/\.xer$/i, "") || "schedule");
-	const isWeekend = (serial: number | undefined) => {
+	const isWeekend = (serial: Serial | undefined) => {
 		if (serial === undefined) return false;
 		const wd = weekdayLabel(serial);
 		return wd === "Sat" || wd === "Sun";
@@ -188,8 +192,7 @@
 		if (!grid) return;
 		busy = true;
 		try {
-			const blob = await gridToXlsx(grid);
-			downloadBlob(blob, `${baseName}-calendar-grid.xlsx`);
+			await saveExport(xlsxExporter, grid, `${baseName}-calendar-grid`);
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
 		} finally {

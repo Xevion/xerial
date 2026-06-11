@@ -20,7 +20,19 @@
  *
  * P6 weekday indices run 1=Sunday to 7=Saturday. Exception `d` values are
  * Excel-style date serials (epoch 1899-12-30).
+ *
+ * Decoding never throws: a malformed blob yields `{ ok: false, error }`.
  */
+
+import {
+	parseHM,
+	serial,
+	serialToDate,
+	serialToIso,
+	shiftDurationMinutes,
+	type IsoDate,
+	type Serial,
+} from "./time";
 
 export interface Shift {
 	/** "HH:MM" 24h, as stored (may be "7:00" or "07:00"). */
@@ -40,10 +52,9 @@ export interface Weekday {
 }
 
 export interface CalendarException {
-	serial: number;
+	serial: Serial;
 	date: Date;
-	/** "YYYY-MM-DD". */
-	iso: string;
+	iso: IsoDate;
 	working: boolean;
 	shifts: Shift[];
 	hours: number;
@@ -51,9 +62,14 @@ export interface CalendarException {
 
 export interface DecodedCalendar {
 	weekdays: Weekday[];
+	/** Weekday pattern keyed by JS weekday (0=Sun..6=Sat) for grid lookup. */
+	weekdaysByJsDay: Map<number, Weekday>;
 	exceptions: CalendarException[];
 	showTotal: boolean;
 }
+
+/** Success/failure of decoding without exceptions for the malformed case. */
+export type DecodeResult = { ok: true; value: DecodedCalendar } | { ok: false; error: string };
 
 interface RawNode {
 	/** Last `|`-segment of the header (the key). */
@@ -64,21 +80,49 @@ interface RawNode {
 }
 
 const DAY_NAMES = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
-const MS_PER_DAY = 86_400_000;
+/** Guard against a pathologically (or maliciously) deep blob blowing the stack. */
+const MAX_DEPTH = 256;
 
-/** Excel serial (days since 1899-12-30) -> UTC Date. */
-export function serialToDate(serial: number): Date {
-	return new Date(EXCEL_EPOCH_MS + serial * MS_PER_DAY);
-}
+/** A position-aware cursor over the packed blob, threaded through recursion. */
+class Cursor {
+	private i = 0;
+	constructor(private readonly s: string) {}
 
-/** Days since 1899-12-30 for a UTC date; inverse of serialToDate. */
-export function dateToSerial(date: Date): number {
-	return Math.round((date.getTime() - EXCEL_EPOCH_MS) / MS_PER_DAY);
-}
+	atEnd(): boolean {
+		return this.i >= this.s.length;
+	}
 
-function isoUTC(date: Date): string {
-	return date.toISOString().slice(0, 10);
+	peek(): string | undefined {
+		return this.s[this.i];
+	}
+
+	next(): string {
+		const ch = this.s[this.i];
+		if (ch === undefined) throw new Error(`unexpected end of input at ${this.i}`);
+		this.i++;
+		return ch;
+	}
+
+	expect(ch: string): void {
+		const got = this.s[this.i];
+		if (got !== ch) {
+			const what = got === undefined ? "end of input" : `'${got}'`;
+			throw new Error(`expected '${ch}' at ${this.i}, got ${what}`);
+		}
+		this.i++;
+	}
+
+	/**
+	 * Skip layout filler between nodes: ASCII whitespace plus the 0x7F (DEL) bytes
+	 * P6 emits as indentation in the pretty-printed `clndr_data` variant.
+	 */
+	skipFiller(): void {
+		while (!this.atEnd()) {
+			const code = this.s.charCodeAt(this.i);
+			if (code <= 0x20 || code === 0x7f) this.i++;
+			else break;
+		}
+	}
 }
 
 /** Parse a flat `key|value|key|value` param string into an object. */
@@ -94,62 +138,35 @@ function parseParams(s: string): Record<string, string> {
 	return out;
 }
 
-/**
- * Skip layout filler between nodes: ASCII whitespace plus the 0x7F (DEL) bytes
- * P6 emits as indentation in the pretty-printed `clndr_data` variant.
- */
-function skipFiller(s: string, pos: { i: number }): void {
-	while (pos.i < s.length) {
-		const code = s.charCodeAt(pos.i);
-		if (code <= 0x20 || code === 0x7f) pos.i++;
-		else break;
-	}
-}
+/** Recursive-descent parse of one `(header(params)(children))` node. */
+function parseNode(c: Cursor, depth: number): RawNode {
+	if (depth > MAX_DEPTH) throw new Error(`calendar data nested deeper than ${MAX_DEPTH}`);
 
-/**
- * Recursive-descent parser over the packed blob. `pos` is a single-element
- * cursor so it threads through recursion by reference.
- */
-function parseNode(s: string, pos: { i: number }): RawNode {
-	// '('
-	if (s[pos.i] !== "(") throw new Error(`expected '(' at ${pos.i}, got '${s[pos.i]}'`);
-	pos.i++;
+	c.expect("(");
 
 	// header: everything up to the params '('
 	let header = "";
-	while (pos.i < s.length && s[pos.i] !== "(") header += s[pos.i++];
+	while (!c.atEnd() && c.peek() !== "(") header += c.next();
 	const name = header.slice(header.lastIndexOf("|") + 1);
 
 	// params: '(' ... ')'  flat, no nested parens
-	if (s[pos.i] !== "(") throw new Error(`expected params '(' at ${pos.i}`);
-	pos.i++;
+	c.expect("(");
 	let paramStr = "";
-	while (pos.i < s.length && s[pos.i] !== ")") paramStr += s[pos.i++];
-	pos.i++; // past ')'
+	while (!c.atEnd() && c.peek() !== ")") paramStr += c.next();
+	c.expect(")");
 
 	// children: '(' node* ')'
-	if (s[pos.i] !== "(") throw new Error(`expected children '(' at ${pos.i}`);
-	pos.i++;
+	c.expect("(");
 	const children: RawNode[] = [];
-	while (pos.i < s.length) {
-		skipFiller(s, pos); // whitespace + the 0x7F (DEL) chars P6 uses for indentation
-		if (s[pos.i] === "(") children.push(parseNode(s, pos));
+	for (;;) {
+		c.skipFiller();
+		if (c.peek() === "(") children.push(parseNode(c, depth + 1));
 		else break;
 	}
-	if (s[pos.i] !== ")") throw new Error(`expected children ')' at ${pos.i}`);
-	pos.i++; // past children ')'
-
-	// node ')'
-	if (s[pos.i] !== ")") throw new Error(`expected node ')' at ${pos.i}`);
-	pos.i++;
+	c.expect(")"); // children close
+	c.expect(")"); // node close
 
 	return { name, params: parseParams(paramStr), children };
-}
-
-/** "HH:MM" -> minutes since midnight. */
-function timeToMinutes(t: string): number {
-	const [h, m] = t.split(":");
-	return Number(h) * 60 + Number(m ?? 0);
 }
 
 function shiftsFromNodes(nodes: RawNode[]): { shifts: Shift[]; hours: number } {
@@ -160,18 +177,21 @@ function shiftsFromNodes(nodes: RawNode[]): { shifts: Shift[]; hours: number } {
 		const finish = n.params.f;
 		if (start === undefined || finish === undefined) continue;
 		shifts.push({ start, finish });
-		let dur = timeToMinutes(finish) - timeToMinutes(start);
-		if (dur <= 0) dur += 24 * 60; // finish <= start wraps past midnight (00:00->00:00 = 24h)
-		minutes += dur;
+		minutes += shiftDurationMinutes(parseHM(start), parseHM(finish));
 	}
 	return { shifts, hours: minutes / 60 };
 }
 
 /** Decode a CALENDAR row's clndr_data into weekly pattern + exceptions. */
-export function decodeCalendar(clndrData: string): DecodedCalendar {
-	const root = parseNode(clndrData.trim(), { i: 0 });
+export function decodeCalendar(clndrData: string): DecodeResult {
+	let root: RawNode;
+	try {
+		root = parseNode(new Cursor(clndrData.trim()), 0);
+	} catch (err) {
+		return { ok: false, error: (err as Error).message };
+	}
 	if (root.name !== "CalendarData") {
-		throw new Error(`expected CalendarData root, got '${root.name}'`);
+		return { ok: false, error: `expected CalendarData root, got '${root.name}'` };
 	}
 
 	const daysNode = root.children.find((c) => c.name === "DaysOfWeek");
@@ -179,29 +199,35 @@ export function decodeCalendar(clndrData: string): DecodedCalendar {
 	const exceptionsNode = root.children.find((c) => c.name === "Exceptions");
 
 	const weekdays: Weekday[] = [];
+	const weekdaysByJsDay = new Map<number, Weekday>();
 	for (const dayNode of daysNode?.children ?? []) {
 		const index = Number(dayNode.name);
 		const { shifts, hours } = shiftsFromNodes(dayNode.children);
-		weekdays.push({
+		const weekday: Weekday = {
 			index,
 			name: DAY_NAMES[index] ?? String(index),
 			working: shifts.length > 0,
 			shifts,
 			hours,
-		});
+		};
+		weekdays.push(weekday);
+		// P6 index 1..7 (1=Sun) -> JS weekday 0..6 (0=Sun).
+		if (Number.isInteger(index) && index >= 1 && index <= 7) {
+			weekdaysByJsDay.set(index - 1, weekday);
+		}
 	}
 	weekdays.sort((a, b) => a.index - b.index);
 
 	const exceptions: CalendarException[] = [];
 	for (const exNode of exceptionsNode?.children ?? []) {
-		const serial = Number(exNode.params.d);
-		if (!Number.isFinite(serial)) continue;
+		const raw = Number(exNode.params.d);
+		if (!Number.isFinite(raw)) continue;
+		const s = serial(raw);
 		const { shifts, hours } = shiftsFromNodes(exNode.children);
-		const date = serialToDate(serial);
 		exceptions.push({
-			serial,
-			date,
-			iso: isoUTC(date),
+			serial: s,
+			date: serialToDate(s),
+			iso: serialToIso(s),
 			working: shifts.length > 0,
 			shifts,
 			hours,
@@ -210,8 +236,12 @@ export function decodeCalendar(clndrData: string): DecodedCalendar {
 	exceptions.sort((a, b) => a.serial - b.serial);
 
 	return {
-		weekdays,
-		exceptions,
-		showTotal: viewNode?.params.ShowTotal === "Y",
+		ok: true,
+		value: {
+			weekdays,
+			weekdaysByJsDay,
+			exceptions,
+			showTotal: viewNode?.params.ShowTotal === "Y",
+		},
 	};
 }

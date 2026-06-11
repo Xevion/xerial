@@ -1,8 +1,10 @@
-import type { GridResult } from "./parser";
+import type { GridResult } from "../parser";
+import type { Exporter } from "./types";
 
 const DATE_FMT = "m/d/yyyy";
 const TIME_FMT = "h:mm AM/PM";
 const HOURS_FMT = "0.##";
+const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 /**
  * Write a calendar grid to an .xlsx workbook: a shared date axis across the top
@@ -10,7 +12,7 @@ const HOURS_FMT = "0.##";
  * serials; Start/End are day-fractions with time formats; Total Hours are plain
  * numbers (0 on non-working days).
  */
-export async function gridToXlsx(grid: GridResult): Promise<Blob> {
+async function gridToXlsx(grid: GridResult): Promise<Blob> {
 	// Lazy-loaded: exceljs is large and only needed at export time, so it stays
 	// out of the initial bundle and downloads on first export.
 	const { default: ExcelJS } = await import("exceljs");
@@ -70,19 +72,13 @@ export async function gridToXlsx(grid: GridResult): Promise<Blob> {
 	ws.views = [{ state: "frozen", xSplit: 2, ySplit: 1 }];
 
 	const buffer = await wb.xlsx.writeBuffer();
-	return new Blob([buffer], {
-		type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-	});
+	return new Blob([buffer], { type: XLSX_MIME });
 }
 
-/** Trigger a browser download of a Blob under the given filename. */
-export function downloadBlob(blob: Blob, filename: string): void {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement("a");
-	a.href = url;
-	a.download = filename;
-	document.body.appendChild(a);
-	a.click();
-	a.remove();
-	URL.revokeObjectURL(url);
-}
+export const xlsxExporter: Exporter = {
+	id: "xlsx",
+	label: "Excel (.xlsx)",
+	ext: "xlsx",
+	mime: XLSX_MIME,
+	export: gridToXlsx,
+};

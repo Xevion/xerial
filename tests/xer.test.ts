@@ -107,3 +107,36 @@ describe("parseXer tables", () => {
 		expect(doc.tables).toEqual([]);
 	});
 });
+
+describe("parseXer diagnostics", () => {
+	const codesOf = (xer: string) => parseXer(xer).diagnostics.map((d) => d.code);
+
+	test("a clean file has no diagnostics", () => {
+		const xer = "%T\tT\r\n%F\ta\r\n%R\t1\r\n%E\r\n";
+		expect(parseXer(xer).diagnostics).toEqual([]);
+	});
+
+	test("a %T line with no table name is reported and skipped", () => {
+		const xer = "%T\r\n%F\ta\r\n%R\t1\r\n%E\r\n";
+		const doc = parseXer(xer);
+		expect(doc.tables).toHaveLength(0);
+		expect(codesOf(xer)).toContain("MALFORMED_TABLE_HEADER");
+	});
+
+	test("a duplicate column name is reported, last value wins", () => {
+		const xer = "%T\tT\r\n%F\ta\ta\r\n%R\t1\t2\r\n%E\r\n";
+		const doc = parseXer(xer);
+		expect(doc.diagnostics.map((d) => d.code)).toContain("DUPLICATE_FIELD");
+		expect(doc.table("T")?.rows[0]).toEqual({ a: "2" });
+	});
+
+	test("a record before any columns is reported and skipped", () => {
+		expect(codesOf("%R\t1\r\n%E\r\n")).toContain("RECORD_BEFORE_FIELDS");
+	});
+
+	test("an unknown token is recorded as info", () => {
+		const xer = "%T\tT\r\n%F\ta\r\n%Q\tfuture\r\n%R\t1\r\n%E\r\n";
+		const diag = parseXer(xer).diagnostics.find((d) => d.code === "UNKNOWN_TOKEN");
+		expect(diag?.severity).toBe("info");
+	});
+});
