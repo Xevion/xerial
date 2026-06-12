@@ -1,5 +1,4 @@
-import type { GridResult } from "../parser";
-import type { Exporter } from "./types";
+import type { ExportFormat } from "./types";
 
 /**
  * The slice of the File System Access API we use. It's declared locally rather
@@ -29,19 +28,19 @@ export function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /**
- * Run an exporter over a grid and save the result as `<baseName>.<ext>`.
+ * Run an export format over its data and save the result as `<baseName>.<ext>`.
  *
  * Where the File System Access API exists (Chromium), this opens the OS "Save"
  * dialog with the name prepopulated so the user picks the destination and final
  * name; cancelling it is a no-op, not an error. Elsewhere (Firefox/Safari) it
  * falls back to an anchor download carrying the same suggested name.
  */
-export async function saveExport(
-	exporter: Exporter,
-	grid: GridResult,
+export async function saveExport<T>(
+	exporter: ExportFormat<T>,
+	data: T,
 	baseName: string,
 ): Promise<void> {
-	const blob = await exporter.export(grid);
+	const blob = await exporter.export(data);
 	const filename = `${baseName}.${exporter.ext}`;
 
 	if (typeof window !== "undefined" && "showSaveFilePicker" in window) {

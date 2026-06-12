@@ -1,5 +1,6 @@
 <script lang="ts">
 	import FileUp from "@lucide/svelte/icons/file-up";
+	import GitCompare from "@lucide/svelte/icons/git-compare";
 	import Sparkles from "@lucide/svelte/icons/sparkles";
 
 	import { css } from "styled-system/css";
@@ -10,11 +11,13 @@
 		error = null,
 		onFile,
 		onSample,
+		onCompareSample,
 	}: {
 		busy?: boolean;
 		error?: string | null;
 		onFile: (file: File) => void;
 		onSample: () => void;
+		onCompareSample: () => void;
 	} = $props();
 
 	let dragging = $state(false);
@@ -157,6 +160,15 @@
 				>
 					<Sparkles size={15} aria-hidden="true" />
 					Try a sample
+				</button>
+				<button
+					class={button({ variant: "subtle" })}
+					type="button"
+					disabled={busy}
+					onclick={onCompareSample}
+				>
+					<GitCompare size={15} aria-hidden="true" />
+					Compare a sample
 				</button>
 			</div>
 

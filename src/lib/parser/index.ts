@@ -65,3 +65,12 @@ export {
 	type PreparedGrid,
 	type SkippedCalendar,
 } from "./grid";
+
+export {
+	diffGrids,
+	DiffError,
+	type CalendarChangeKind,
+	type CalendarDiff,
+	type DayDiff,
+	type GridDiff,
+} from "./diff";

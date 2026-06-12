@@ -1,11 +1,12 @@
-import type { GridResult } from "../parser";
+import type { GridDiff, GridResult } from "../parser";
 
 /**
- * A calendar-grid exporter. The grid model is format-agnostic, so each format
- * (XLSX, CSV, TSV, ...) is just a different `Exporter` over the same data. All
- * exporters resolve to a `Blob` for uniform download handling.
+ * A format renderer over some data model. Each output format (XLSX, CSV, TSV, …)
+ * is one `ExportFormat` resolving to a `Blob` for uniform download handling. The
+ * grid and the diff are different inputs, so they get distinct format families
+ * over the same shape.
  */
-export interface Exporter {
+export interface ExportFormat<T> {
 	/** Stable identifier, e.g. "xlsx". */
 	readonly id: string;
 	/** Human label for a format picker, e.g. "Excel (.xlsx)". */
@@ -14,5 +15,11 @@ export interface Exporter {
 	readonly ext: string;
 	/** MIME type for the produced Blob. */
 	readonly mime: string;
-	export(grid: GridResult): Promise<Blob>;
+	export(data: T): Promise<Blob>;
 }
+
+/** Exports the full day-by-day calendar grid. */
+export type Exporter = ExportFormat<GridResult>;
+
+/** Exports a two-file comparison as a change report. */
+export type DiffExporter = ExportFormat<GridDiff>;

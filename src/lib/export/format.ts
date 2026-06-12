@@ -7,6 +7,7 @@
 import { fractionToMinutes, serialToDate, type DayFraction, type Serial } from "../parser";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Excel date serial -> "m/d/yyyy" (UTC), matching the .xlsx date format. */
 export function formatDate(serial: Serial): string {
@@ -17,6 +18,12 @@ export function formatDate(serial: Serial): string {
 /** Short weekday label for a date serial (UTC). */
 export function weekdayLabel(serial: Serial): string {
 	return WEEKDAYS[serialToDate(serial).getUTCDay()] ?? "";
+}
+
+/** Prose day label for change lists, e.g. "Fri Jan 9" (UTC). */
+export function formatDayLabel(serial: Serial): string {
+	const d = serialToDate(serial);
+	return `${WEEKDAYS[d.getUTCDay()]} ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }
 
 /** Day fraction (0..1) -> "h:mm AM/PM". */

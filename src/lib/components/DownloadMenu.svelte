@@ -5,29 +5,29 @@
 	import ChevronDown from "@lucide/svelte/icons/chevron-down";
 	import Download from "@lucide/svelte/icons/download";
 
-	import type { Exporter } from "$lib/export";
-
 	import { css } from "styled-system/css";
 	import { button, menu } from "styled-system/recipes";
 
+	/** The minimum a format needs to appear in the picker; the caller resolves the id. */
+	interface MenuFormat {
+		id: string;
+		label: string;
+		ext: string;
+	}
+
 	let {
-		exporters,
+		items,
+		label = "Download",
 		disabled = false,
 		busy = false,
 		onPick,
 	}: {
-		exporters: Exporter[];
+		items: ReadonlyArray<MenuFormat>;
+		label?: string;
 		disabled?: boolean;
 		busy?: boolean;
-		onPick: (exporter: Exporter) => void;
+		onPick: (id: string) => void;
 	} = $props();
-
-	const byId = $derived(new Map(exporters.map((e) => [e.id, e])));
-
-	function select(value: string) {
-		const exporter = byId.get(value);
-		if (exporter) onPick(exporter);
-	}
 
 	const m = menu();
 	const styles = {
@@ -41,12 +41,12 @@
 	};
 </script>
 
-<Menu.Root onSelect={(e) => select(e.value)}>
+<Menu.Root onSelect={(e) => onPick(e.value)}>
 	<Menu.Trigger>
 		{#snippet asChild(props)}
 			<button class={button({ variant: "onAccent" })} type="button" {disabled} {...props()}>
 				<Download size={16} aria-hidden="true" />
-				{busy ? "Working…" : "Download"}
+				{busy ? "Working…" : label}
 				<ChevronDown class={styles.caret} aria-hidden="true" />
 			</button>
 		{/snippet}
@@ -54,10 +54,10 @@
 	<Portal>
 		<Menu.Positioner>
 			<Menu.Content class={m.content}>
-				{#each exporters as exporter (exporter.id)}
-					<Menu.Item value={exporter.id} class={m.item}>
-						<span>{exporter.label.replace(/\s*\(.*\)$/, "")}</span>
-						<span class={styles.ext}>.{exporter.ext}</span>
+				{#each items as item (item.id)}
+					<Menu.Item value={item.id} class={m.item}>
+						<span>{item.label.replace(/\s*\(.*\)$/, "")}</span>
+						<span class={styles.ext}>.{item.ext}</span>
 					</Menu.Item>
 				{/each}
 			</Menu.Content>

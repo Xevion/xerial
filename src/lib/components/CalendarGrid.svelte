@@ -1,18 +1,27 @@
 <script lang="ts">
 	import { formatDate, formatTime, formatHours, weekdayLabel } from "$lib/export";
-	import type { GridResult } from "$lib/parser";
+	import type { GridView } from "$lib/grid-view";
 
-	let { grid }: { grid: GridResult } = $props();
+	import { css } from "styled-system/css";
+
+	let { view }: { view: GridView } = $props();
 
 	/** Extra columns rendered beyond the viewport so fast scrolling never shows gaps. */
 	const OVERSCAN = 8;
 	/** Fallback column width (≈ the 4.6rem in panda.config) until a cell is measured. */
 	const COL_W_GUESS = 74;
 
+	// A neutral hover wash for the diff view so the green selection tint doesn't read
+	// as meaning; the overlay still lets the underlying diff colors show through.
+	const neutralHover = css({
+		"--grid-hover": "color-mix(in srgb, token(colors.text) 9%, transparent)",
+	});
+	const wrapClass = $derived(view.diff ? `grid-wrap ${neutralHover}` : "grid-wrap");
+
 	// Per-column presentation depends only on the date, not the calendar or row, so
 	// it's computed once per grid instead of re-derived for every one of the cells.
 	const columns = $derived(
-		grid.serials.map((s) => {
+		view.serials.map((s) => {
 			const wd = weekdayLabel(s);
 			return { key: s, date: formatDate(s), wd, weekend: wd === "Sat" || wd === "Sun" };
 		}),
@@ -54,7 +63,7 @@
 	const first = $derived(Math.max(0, Math.floor(scrollLeft / colW) - OVERSCAN));
 	const last = $derived(Math.min(n, Math.ceil((scrollLeft + viewportWidth) / colW) + OVERSCAN));
 	// Indices of the date columns to actually render; the rest are empty spacer cells.
-	const view = $derived.by(() => {
+	const visible = $derived.by(() => {
 		const out: number[] = [];
 		for (let i = first; i < last; i++) out.push(i);
 		return out;
@@ -63,14 +72,14 @@
 	const rightW = $derived(Math.max(0, n - last) * colW);
 </script>
 
-<div class="grid-wrap" bind:this={scroller} onscroll={onScroll}>
+<div class={wrapClass} bind:this={scroller} onscroll={onScroll}>
 	<table class="grid">
 		<thead>
 			<tr>
 				<th class="c-corner c-name"></th>
 				<th class="c-corner c-label"></th>
 				{#if leftW > 0}<th class="c-spacer" style="width:{leftW}px" aria-hidden="true"></th>{/if}
-				{#each view as i (columns[i]?.key ?? i)}
+				{#each visible as i (columns[i]?.key ?? i)}
 					{@const col = columns[i]}
 					<th class="c-date" class:weekend={col?.weekend} title={col?.date}>
 						<span class="d-date">{col?.date ?? ""}</span>
@@ -81,41 +90,66 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each grid.calendars as cal (cal.clndrId)}
-				<tr class="r-start">
-					<td class="c-name" rowspan="3" title={cal.name}>{cal.name}</td>
+			{#each view.rows as row (row.clndrId)}
+				<tr
+					class="r-start"
+					class:added={row.state === "added"}
+					class:removed={row.state === "removed"}
+				>
+					<td class="c-name {row.state ?? ''}" rowspan="3" title={row.name}>{row.name}</td>
 					<td class="c-label">Start</td>
 					{#if leftW > 0}<td class="c-spacer" style="width:{leftW}px"></td>{/if}
-					{#each view as i (columns[i]?.key ?? i)}
-						{@const day = cal.days[i]}
-						<td class="num" class:off={!day?.working} class:weekend={columns[i]?.weekend}>
-							{day && day.start !== null ? formatTime(day.start) : ""}
+					{#each visible as i (columns[i]?.key ?? i)}
+						{@const cell = row.cells[i]}
+						<td
+							class="num"
+							class:off={!cell?.working}
+							class:weekend={columns[i]?.weekend}
+							class:chg={cell?.changed}
+							title={cell?.title}
+						>
+							{cell && cell.start !== null ? formatTime(cell.start) : ""}
 						</td>
 					{/each}
 					{#if rightW > 0}<td class="c-spacer" style="width:{rightW}px"></td>{/if}
 				</tr>
-				<tr class="r-end">
+				<tr
+					class="r-end"
+					class:added={row.state === "added"}
+					class:removed={row.state === "removed"}
+				>
 					<td class="c-label">End</td>
 					{#if leftW > 0}<td class="c-spacer" style="width:{leftW}px"></td>{/if}
-					{#each view as i (columns[i]?.key ?? i)}
-						{@const day = cal.days[i]}
-						<td class="num" class:off={!day?.working} class:weekend={columns[i]?.weekend}>
-							{day && day.end !== null ? formatTime(day.end) : ""}
+					{#each visible as i (columns[i]?.key ?? i)}
+						{@const cell = row.cells[i]}
+						<td
+							class="num"
+							class:off={!cell?.working}
+							class:weekend={columns[i]?.weekend}
+							class:chg={cell?.changed}
+						>
+							{cell && cell.end !== null ? formatTime(cell.end) : ""}
 						</td>
 					{/each}
 					{#if rightW > 0}<td class="c-spacer" style="width:{rightW}px"></td>{/if}
 				</tr>
-				<tr class="r-total">
+				<tr
+					class="r-total"
+					class:added={row.state === "added"}
+					class:removed={row.state === "removed"}
+				>
 					<td class="c-label">Total Hours</td>
 					{#if leftW > 0}<td class="c-spacer" style="width:{leftW}px"></td>{/if}
-					{#each view as i (columns[i]?.key ?? i)}
-						{@const day = cal.days[i]}
+					{#each visible as i (columns[i]?.key ?? i)}
+						{@const cell = row.cells[i]}
 						<td
 							class="num hours"
-							class:off={!day || day.hours === 0}
+							class:off={!cell || cell.hours === 0}
 							class:weekend={columns[i]?.weekend}
+							class:chg={cell?.changed}
+							title={cell?.title}
 						>
-							{day ? formatHours(day.hours) : ""}
+							{cell ? formatHours(cell.hours) : ""}
 						</td>
 					{/each}
 					{#if rightW > 0}<td class="c-spacer" style="width:{rightW}px"></td>{/if}

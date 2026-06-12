@@ -90,6 +90,13 @@ export default defineConfig({
 					danger: { value: { base: "#b3261e", _dark: "#f2756b" } },
 					warn: { value: { base: "#8a6d00", _dark: "#d9b54a" } },
 
+					// Diff highlights: a calendar/day's fate across the two compared files.
+					diff: {
+						changeBg: { value: { base: "#fdf3d3", _dark: "#3a3320" } },
+						addBg: { value: { base: "#e4f3ea", _dark: "#1f3327" } },
+						removeBg: { value: { base: "#fbe5e3", _dark: "#3a2422" } },
+					},
+
 					// White button on the green bar; identical in both schemes.
 					btn: {
 						primary: {
@@ -233,6 +240,23 @@ export default defineConfig({
 		".num.off": { color: "grid.numOff" },
 		"td.weekend": { backgroundColor: "grid.weekend" },
 		".r-total .num": { fontWeight: 600 },
-		"table.grid tbody tr:hover td.num": { backgroundColor: "selection" },
+		// Row hover is a translucent overlay (inset shadow) that composites over the
+		// cell's own background rather than replacing it, so weekend tints and diff
+		// highlights stay visible underneath. The color is a single knob: the default
+		// is the green selection tint; a grid can override `--grid-hover` (the diff
+		// view sets a neutral wash) without any view-specific selector here.
+		"table.grid tbody tr:hover td.num": {
+			boxShadow:
+				"inset 0 0 0 100px var(--grid-hover, color-mix(in srgb, token(colors.accent) 15%, transparent))",
+		},
+
+		// Diff overlay — only the compare grid sets these classes, so the single-file
+		// grid is untouched. A changed cell wins over the row tint via later order.
+		"table.grid tr.added td.num": { backgroundColor: "diff.addBg" },
+		"table.grid tr.removed td.num": { backgroundColor: "diff.removeBg", color: "muted" },
+		"table.grid td.num.chg": { backgroundColor: "diff.changeBg", fontWeight: 600 },
+		".c-name.added": { boxShadow: "inset 3px 0 0 token(colors.accent)" },
+		".c-name.removed": { boxShadow: "inset 3px 0 0 token(colors.danger)" },
+		".c-name.modified": { boxShadow: "inset 3px 0 0 token(colors.warn)" },
 	},
 });

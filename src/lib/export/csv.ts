@@ -4,7 +4,7 @@ import type { Exporter } from "./types";
 import { gridToMatrix } from "./matrix";
 
 /** Quote a field per RFC 4180 when it contains a comma, quote, or newline. */
-function csvField(value: string): string {
+export function csvField(value: string): string {
 	return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 

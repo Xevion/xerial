@@ -48,52 +48,92 @@ const office: Shift[] = [
 	["08:00", "12:00"],
 	["13:00", "17:00"],
 ];
+const halfDay: Shift[] = [["08:00", "12:00"]];
 const tenHour: Shift[] = [
 	["07:00", "12:00"],
 	["12:30", "17:30"],
 ];
 const continuous: Shift[] = [["00:00", "24:00"]];
+const nightShift: Shift[] = [["18:00", "23:00"]];
 
 const HOLIDAY = isoToSerial("2026-01-19"); // a full-week holiday inside the span
+const EXTRA_HOLIDAY = isoToSerial("2026-01-12"); // only the revised file observes this
 
-const calendars: { id: string; name: string; defaultFlag: string; shape: CalendarShape }[] = [
-	{
-		id: "1",
-		name: "Standard 5-Day Workweek",
-		defaultFlag: "Y",
-		shape: { days: { 2: office, 3: office, 4: office, 5: office, 6: office }, holidays: [HOLIDAY] },
+interface CalSpec {
+	id: string;
+	name: string;
+	defaultFlag: string;
+	shape: CalendarShape;
+}
+
+const standard5Day: CalSpec = {
+	id: "1",
+	name: "Standard 5-Day Workweek",
+	defaultFlag: "Y",
+	shape: { days: { 2: office, 3: office, 4: office, 5: office, 6: office }, holidays: [HOLIDAY] },
+};
+const construction6Day: CalSpec = {
+	id: "2",
+	name: "6-Day Construction (10h)",
+	defaultFlag: "N",
+	shape: {
+		days: { 2: tenHour, 3: tenHour, 4: tenHour, 5: tenHour, 6: tenHour, 7: tenHour },
+		holidays: [HOLIDAY],
 	},
-	{
-		id: "2",
-		name: "6-Day Construction (10h)",
-		defaultFlag: "N",
-		shape: {
-			days: { 2: tenHour, 3: tenHour, 4: tenHour, 5: tenHour, 6: tenHour, 7: tenHour },
-			holidays: [HOLIDAY],
+};
+const continuous7Day: CalSpec = {
+	id: "3",
+	name: "7-Day Continuous (24h)",
+	defaultFlag: "N",
+	shape: {
+		days: {
+			1: continuous,
+			2: continuous,
+			3: continuous,
+			4: continuous,
+			5: continuous,
+			6: continuous,
+			7: continuous,
 		},
 	},
-	{
-		id: "3",
-		name: "7-Day Continuous (24h)",
-		defaultFlag: "N",
-		shape: {
-			days: {
-				1: continuous,
-				2: continuous,
-				3: continuous,
-				4: continuous,
-				5: continuous,
-				6: continuous,
-				7: continuous,
-			},
-		},
+};
+const maintenance4Day: CalSpec = {
+	id: "4",
+	name: "4-Day Maintenance (Mon–Thu)",
+	defaultFlag: "N",
+	shape: { days: { 2: tenHour, 3: tenHour, 4: tenHour, 5: tenHour } },
+};
+
+const baseCalendars: CalSpec[] = [standard5Day, construction6Day, continuous7Day, maintenance4Day];
+
+/**
+ * The revised calendars for the compare demo — the kind of edits a scheduler makes
+ * between two exports: a weekday's hours cut, a new holiday, a calendar retired, and
+ * a new one added. Diffing baseline → revised should surface exactly these.
+ */
+const standard5DayRevised: CalSpec = {
+	id: "1",
+	name: "Standard 5-Day Workweek",
+	defaultFlag: "Y",
+	// Fridays cut to a half day, plus an extra company holiday.
+	shape: {
+		days: { 2: office, 3: office, 4: office, 5: office, 6: halfDay },
+		holidays: [HOLIDAY, EXTRA_HOLIDAY],
 	},
-	{
-		id: "4",
-		name: "4-Day Maintenance (Mon–Thu)",
-		defaultFlag: "N",
-		shape: { days: { 2: tenHour, 3: tenHour, 4: tenHour, 5: tenHour } },
-	},
+};
+const nightShiftCal: CalSpec = {
+	id: "5",
+	name: "Night Shift (5h)",
+	defaultFlag: "N",
+	shape: { days: { 2: nightShift, 3: nightShift, 4: nightShift, 5: nightShift, 6: nightShift } },
+};
+
+// 4-Day Maintenance retired; Night Shift added; Standard 5-Day edited.
+const revisedCalendars: CalSpec[] = [
+	standard5DayRevised,
+	construction6Day,
+	continuous7Day,
+	nightShiftCal,
 ];
 
 /** Activities fix the visible span and decide which calendars are "used". */
@@ -104,12 +144,12 @@ const tasks = [
 	["103", "3", "2026-01-07 00:00", "2026-01-21 00:00"],
 ];
 
-function buildSampleXer(): string {
+function buildXerString(calendars: CalSpec[], exportDate: string): string {
 	const lines = [
 		[
 			"ERMHDR",
 			"20.12",
-			"2026-01-26",
+			exportDate,
 			"Project",
 			"demo",
 			"Sample Project",
@@ -132,5 +172,25 @@ function buildSampleXer(): string {
 
 /** The sample file's raw bytes plus the name it should appear under. */
 export function sampleXer(): { name: string; bytes: Uint8Array } {
-	return { name: "sample-project.xer", bytes: encodeXer(buildSampleXer()) };
+	return {
+		name: "sample-project.xer",
+		bytes: encodeXer(buildXerString(baseCalendars, "2026-01-26")),
+	};
+}
+
+/** Baseline + revised pair for the compare demo — same project, calendar edits applied. */
+export function compareSampleXer(): {
+	baseline: { name: string; bytes: Uint8Array };
+	revised: { name: string; bytes: Uint8Array };
+} {
+	return {
+		baseline: {
+			name: "sample-rev-A.xer",
+			bytes: encodeXer(buildXerString(baseCalendars, "2026-01-26")),
+		},
+		revised: {
+			name: "sample-rev-B.xer",
+			bytes: encodeXer(buildXerString(revisedCalendars, "2026-02-09")),
+		},
+	};
 }
