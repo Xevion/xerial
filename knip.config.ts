@@ -6,11 +6,13 @@ export default {
 	//
 	// The parser and export barrels are public library surfaces: they
 	// intentionally expose more than the app happens to consume today, so they're
-	// entries rather than dead-export candidates.
+	// entries rather than dead-export candidates. The timeline barrel is likewise
+	// a library surface that is not wired into the UI yet.
 	entry: [
 		"tempo.config.ts",
 		"src/lib/parser/node.ts",
 		"src/lib/parser/index.ts",
 		"src/lib/export/index.ts",
+		"src/lib/timeline/index.ts",
 	],
 } satisfies KnipConfig;

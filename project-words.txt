@@ -50,3 +50,9 @@ unpadded
 unparseable
 xerial
 xevion
+gridlines
+mths
+rrggbb
+lightgreen
+mediumblue
+medblue
